@@ -34,5 +34,11 @@ the file ID through the `net.osipiuk.bucklog://picked` link. (A WebView-hosted P
 - **Change detection**: Drive `version` goes up on every write (6 → 8 after one append), so it's usable for §6.3.
 - **USER_ENTERED parsing**: in an en/GMT sheet, `2026-09-28 21:52` became serial 46293.91 and `1.23` became a number.
   Not yet tested on a Polish-locale sheet. M2 should write raw numbers/serials (`RAW`) and not rely on parsing.
-- **Open**: steps 8–9 (a second family account, on a sheet another user created).
+- **Second family member works** (steps 8–9): a sheet created by the app as account A and shared
+  with account B returns 404 for B until B picks it. After picking, B can read and append to the
+  app-created tabs.
+- **Publishing gotcha**: in Testing mode, non-test accounts get "Access blocked: app not verified".
+  Publishing needs a Branding home page + privacy policy on an authorized domain (see setup doc).
+
+**Result: the SPEC §4 access model is validated. M0 done.**
 
