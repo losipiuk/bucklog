@@ -7,8 +7,8 @@ import net.osipiuk.bucklog.google.SheetsClient
 
 /** Appends categories created in the app to the sheet's Categories tab. */
 class CategoryUploader(private val store: LocalStore, private val sheets: SheetsClient) {
-    /** Uploads queued categories in order; stops at the first failure and leaves the rest queued. */
-    suspend fun upload(spreadsheetId: String): Boolean {
+    /** Uploads queued categories in order; on failure records it, leaves the rest queued and rethrows. */
+    suspend fun upload(spreadsheetId: String) {
         for ((seq, name) in store.pendingCategoryAdds()) {
             try {
                 sheets.append(
@@ -21,9 +21,8 @@ class CategoryUploader(private val store: LocalStore, private val sheets: Sheets
                 throw e
             } catch (e: Exception) {
                 store.failOutbox(seq, e.message ?: e::class.simpleName.orEmpty())
-                return false
+                throw e
             }
         }
-        return true
     }
 }

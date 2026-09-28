@@ -16,12 +16,12 @@ import net.osipiuk.bucklog.db.BucklogDatabase
 import net.osipiuk.bucklog.domain.Category
 import net.osipiuk.bucklog.google.AccessTokenProvider
 import net.osipiuk.bucklog.google.GoogleApi
+import net.osipiuk.bucklog.google.GoogleApiException
 import net.osipiuk.bucklog.google.SheetsClient
 import net.osipiuk.bucklog.sheet.CategoryUploader
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertTrue
+import kotlin.test.assertFailsWith
 
 class CategoryUploaderTest {
     private val store = LocalStore(
@@ -56,7 +56,7 @@ class CategoryUploaderTest {
         store.replaceCategories(listOf(Category("Food", "🍎")))
         store.addCategory(Category("Pies", null))
 
-        assertTrue(uploader.upload("abc"))
+        uploader.upload("abc")
 
         assertEquals(listOf("Food", "Pies"), store.categories.first().map { it.name })
         assertEquals(0, store.outboxSize())
@@ -70,7 +70,7 @@ class CategoryUploaderTest {
         store.addCategory(Category("Pies", null))
         failing = true
 
-        assertFalse(uploader.upload("abc"))
+        assertFailsWith<GoogleApiException> { uploader.upload("abc") }
 
         assertEquals(1, store.pendingCategoryAdds().size)
     }

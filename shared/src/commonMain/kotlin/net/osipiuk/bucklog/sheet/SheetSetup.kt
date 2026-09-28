@@ -61,25 +61,26 @@ class SheetSetup(private val sheets: SheetsClient) {
         val existing = sheets.get(spreadsheetId).sheets.map { it.properties.title }.toSet()
         val missing = listOf(SheetLayout.CATEGORIES, SheetLayout.SETTINGS, SheetLayout.yearTab(year)).filter { it !in existing }
         if (missing.isEmpty()) return missing
-        val replies = sheets.batchUpdate(spreadsheetId, missing.map(SheetLayout::addSheet))
-        val sheetIds = replies.associate { reply ->
-            val properties = reply["addSheet"]!!.jsonObject["properties"]!!.jsonObject
-            properties["title"]!!.jsonPrimitive.content to properties["sheetId"]!!.jsonPrimitive.int
-        }
+        val sheetIds = addSheets(spreadsheetId, missing)
         initializeTabs(spreadsheetId, sheetIds, mainCurrency, categories)
         return missing
     }
 
-    suspend fun readConfig(spreadsheetId: String): SheetConfig {
+    /** Adds year tabs (header, formats, category dropdown); returns title → sheetId. */
+    suspend fun addYearTabs(spreadsheetId: String, titles: List<String>): Map<String, Int> {
+        if (titles.isEmpty()) return emptyMap()
+        val sheetIds = addSheets(spreadsheetId, titles)
+        initializeTabs(spreadsheetId, sheetIds, mainCurrency = "", categories = emptyList())
+        return sheetIds
+    }
+
+        suspend fun readConfig(spreadsheetId: String): SheetConfig {
         val spreadsheet = sheets.get(spreadsheetId)
         val (categoryRows, settingRows) = sheets.batchGet(
             spreadsheetId,
             listOf(SheetLayout.range(SheetLayout.CATEGORIES, "A2:C"), SheetLayout.range(SheetLayout.SETTINGS, "A2:B")),
         ).map { it.values }
-        val settings = settingRows.mapNotNull { row ->
-            val key = row.getOrNull(0)?.text() ?: return@mapNotNull null
-            key to (row.getOrNull(1)?.text() ?: "")
-        }.toMap()
+        val settings = parseSettings(settingRows)
         return SheetConfig(
             title = spreadsheet.properties.title,
             timeZone = spreadsheet.properties.timeZone,
@@ -88,7 +89,13 @@ class SheetSetup(private val sheets: SheetsClient) {
         )
     }
 
-    /** Writes headers and initial content into freshly added tabs ([sheetIds]: title → sheetId). */
+    private suspend fun addSheets(spreadsheetId: String, titles: List<String>): Map<String, Int> =
+        sheets.batchUpdate(spreadsheetId, titles.map(SheetLayout::addSheet)).associate { reply ->
+            val properties = reply["addSheet"]!!.jsonObject["properties"]!!.jsonObject
+            properties["title"]!!.jsonPrimitive.content to properties["sheetId"]!!.jsonPrimitive.int
+        }
+
+        /** Writes headers and initial content into freshly added tabs ([sheetIds]: title → sheetId). */
     private suspend fun initializeTabs(
         spreadsheetId: String,
         sheetIds: Map<String, Int>,
@@ -124,8 +131,14 @@ class SheetSetup(private val sheets: SheetsClient) {
         sheets.batchUpdate(spreadsheetId, formats)
     }
 
-    internal companion object {
-        /** Categories tab rows → categories; skips blank names and case-insensitive duplicates. */
+    companion object {
+        /** Settings tab rows → key/value map. */
+        fun parseSettings(rows: List<List<JsonElement>>): Map<String, String> = rows.mapNotNull { row ->
+            val key = row.getOrNull(0)?.text()?.trim()?.ifEmpty { null } ?: return@mapNotNull null
+            key to (row.getOrNull(1)?.text()?.trim() ?: "")
+        }.toMap()
+
+                /** Categories tab rows → categories; skips blank names and case-insensitive duplicates. */
         fun parseCategories(rows: List<List<JsonElement>>): List<Category> {
             val seen = mutableSetOf<String>()
             return rows.mapNotNull { row ->
