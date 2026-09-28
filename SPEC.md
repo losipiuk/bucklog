@@ -4,7 +4,7 @@ A family spend tracker. Android first, iOS later. Several family members share o
 Google Sheet that acts as the database. The app is optimized for one thing above
 all: **logging an expense in as few taps as possible**.
 
-Status: draft v0.1 (2026-09-28)
+Status: draft v0.2 (2026-09-28)
 
 ---
 
@@ -49,14 +49,16 @@ One spreadsheet with these tabs:
 
 ### 3.1 `Categories`
 
-| A: Name   | B: Icon | C: Color  | D: Archived |
-|-----------|---------|-----------|-------------|
-| Groceries | 🛒      | #4CAF50   |             |
-| Fuel      | ⛽      | #FF9800   |             |
-| Kids      | 🧸      | #2196F3   | TRUE        |
+| A: Name   | B: Emoji | C: Archived |
+|-----------|----------|-------------|
+| Groceries | 🛒       |             |
+| Fuel      | ⛽       |             |
+| Kids      | 🧸       | TRUE        |
 
 - **Name** is the key. It must be unique (case-insensitive).
-- Icon (emoji) and Color are optional. The app picks defaults if they are empty.
+- **Emoji** is optional. It exists only to make category chips and History rows
+  recognizable at a glance. Without it the app shows the first letter of the name.
+  There is no color column: chip colors come from the theme.
 - Archived categories are hidden from the picker but kept for old entries.
 - Row order = display order in the picker when there is no better guess.
 
@@ -67,15 +69,18 @@ Key/value pairs:
 | Key              | Value |
 |------------------|-------|
 | schema_version   | 1     |
-| default_currency | PLN   |
+| main_currency    | PLN   |
 
-- `default_currency` is used for rows typed by hand with an empty Currency cell.
+- `main_currency` is the currency all totals are shown in (§6.7). It is also assumed
+  for rows typed by hand with an empty Currency cell.
 
 ### 3.3 Year tabs: `2025`, `2026`, …
 
-| A: Date           | B: Who  | C: What       | D: Category | E: Amount | F: Currency | G: ID      |
-|-------------------|---------|---------------|-------------|-----------|-------------|------------|
-| 2026-09-28 18:42  | Łukasz  | Milk, bread   | Groceries   | 35.30     | PLN         | k3f9x2ab   |
+| A: Date           | B: Who  | C: What       | D: Category | E: Amount | F: Currency | G: Rate | H: ID      |
+|-------------------|---------|---------------|-------------|-----------|-------------|---------|------------|
+| 2026-09-28 18:42  | Łukasz  | Milk, bread   | Groceries   | 35.30     | PLN         |         | k3f9x2ab   |
+| 2026-09-29 12:10  | Łukasz  | Museum        | Fun         | 24.00     | EUR         | 4.2715  | p8d2m4qa   |
+| 2026-09-30 09:05  | Anna    | Shoes         | Clothes     | -199.00   | PLN         |         | z1c7v0tr   |
 
 - **Date**: a real Sheets date-time value, formatted `yyyy-mm-dd hh:mm`, in the
   spreadsheet's time zone. Typing `2026-09-28` by hand works.
@@ -84,9 +89,12 @@ Key/value pairs:
 - **Category**: the category *name*, with a data-validation dropdown sourced from
   `Categories!A2:A`. The dropdown is "show warning", not "reject", so hand edits never get blocked.
 - **Amount**: a number, formatted with 2 decimals (or the currency's minor
-  units). Positive = expense. Negative is allowed (refund/correction).
-- **Currency**: ISO 4217 code. Empty = `default_currency`.
-- **ID**: stable row identity used by sync. Short random string (8 chars,
+  units). Positive = expense. **Negative = refund** (§5.2).
+- **Currency**: ISO 4217 code. Empty = `main_currency`.
+- **Rate**: the exchange rate to `main_currency` on the expense date
+  (1 unit of Currency = Rate × main currency). It is empty for main-currency rows.
+  The app fills it in (§6.7). A rate typed by hand is respected.
+- **ID** (column H): stable row identity used by sync. Short random string (8 chars,
   base32). It is the last column, greyed out, and can be left empty when adding rows by hand;
   the app fills it in (§6.4).
 - Row 1 is a frozen header. Row order is irrelevant. Users may sort/filter freely.
@@ -107,8 +115,8 @@ Key/value pairs:
 - No app-level accounts. Each family member signs in with **their own Google account**.
 - Access control is the sheet's sharing settings: whoever has editor access to
   the sheet can use it.
-- OAuth scope: **`drive.file`** (non-sensitive). This avoids Google app verification
-  and avoids the 7-day token expiry of unverified apps.
+- OAuth scope: **`drive.file`** (non-sensitive). This lets the OAuth app be published
+  "In production" without Google verification, so logins don't expire (see §4.1).
   - With `drive.file`, the app can only access files that the app created or that the user
     explicitly picked. The user therefore **selects the sheet through Google Picker**
     instead of pasting a raw link.
@@ -124,6 +132,33 @@ Key/value pairs:
   2. that a sheet *created by the app* on one account is accessible to other
      members only after they pick it.
   Fallback if the spike fails: the `spreadsheets` scope with Google verification.
+
+
+### 4.1 Google Cloud project (one-time developer setup)
+Any app that calls Google APIs needs an **OAuth client registered in a Google Cloud
+project**. This is a one-time setup done by the developer, not by family members.
+- **Owner**: a personal Google account (yours). It's free; the Sheets and Drive APIs have no cost
+  at this volume.
+- **What gets created**:
+  - Enabled APIs: Google Sheets API, Google Drive API, Google Picker API.
+  - OAuth consent screen: user type *External* (personal Gmail accounts can't use
+    *Internal*, which is Workspace-only). App name, support email, scope `drive.file`.
+  - OAuth clients: *Android* (package name + SHA-1 of each signing key: debug, release,
+    and Play App Signing if used); *iOS* (bundle ID) later; *Web* (for the hosted Picker page).
+  - An API key restricted to the Picker API and the Picker page's origin.
+- **Publishing status must be "In production"**. In *Testing* mode, Google expires
+  every user's authorization after **7 days** for any scope other than basic profile
+  (this includes `drive.file`), so everyone would have to sign in again weekly. With only
+  non-sensitive scopes, switching to production needs no verification review.
+  The consent screen may show the app as unverified-brand (no logo), which is fine.
+- **Who can sign in**: anyone with a Google account can complete the sign-in, but
+  they only ever see sheets that they created with the app or picked themselves and that are shared with them.
+  The sheet's sharing is the real access control.
+- **Secrets**: the Android OAuth client has no secret. The Picker API key is public by
+  design and is locked down by API and origin restrictions. Nothing secret lives in the repo.
+- **Distribution**: a Play Console *internal testing* track (up to 100 testers, updates
+  through the Play Store) or a sideloaded APK. If Play App Signing is used, its SHA-1
+  must be added to the Android OAuth client.
 
 ---
 
@@ -149,6 +184,12 @@ The app **launches directly into Add Expense**, with no home screen in between.
 - Currency chip next to the amount shows the **last used currency** (per device).
   Tapping it opens a picker with recently used currencies first and search below.
   The happy path costs zero extra taps.
+- **Refund toggle**: a small, low-emphasis `↩ Refund` pill on the opposite side of the
+  amount from the currency chip, away from the keypad so it's never hit by accident.
+  It is off by default and **resets to off after every Add**, so it never costs a tap
+  in the normal flow. When on, the amount shows as `+35.30` in a green/"income"
+  color with a "Refund" label, and the Add button reads "Add refund".
+  The entry is stored as a negative Amount.
 - `→` (Next) button, disabled while the amount is 0.
 - Long-press `⌫` clears the amount.
 - Haptic feedback on each key.
@@ -161,6 +202,8 @@ The app **launches directly into Add Expense**, with no home screen in between.
 - Category chips row (horizontally scrollable, emoji + name). The **guessed
   category is preselected** and first; the rest follow by frequency.
 - Big **Add** button (also the keyboard's IME action).
+- For a refund, suggestions and the category guess work the same way, so a refund
+  normally lands in the category of the original purchase.
 - Back returns to Step 1 without losing the input.
 
 **Add**
@@ -184,11 +227,13 @@ The app **launches directly into Add Expense**, with no home screen in between.
 ### 5.4 History and editing
 - Reachable from a `≡` / history icon on the Add screen.
 - A list of entries from all family members, newest first, grouped by day, with
-  day totals and infinite scroll. Search box (What, category, who).
+  day totals in the main currency and infinite scroll. Foreign-currency rows show
+  both, e.g. `24.00 EUR` and `≈ 102.52 PLN` below it. Search box (What, category, who).
 - Each row shows: icon, What, category, who (initial/avatar), amount + currency,
   and a sync status dot (pending / synced / error).
 - Tap → Edit screen: all fields editable (Date via date+time picker, Who,
-  What, Category, Amount, Currency). Save / Delete (with Undo snackbar).
+  What, Category, Amount, Currency, Refund toggle). Save / Delete (with Undo snackbar).
+- Refunds show as `+amount` in the income color. Day totals subtract them.
 - Changing the Date to another year moves the row to the other year tab.
 - Entries changed on the sheet show the updated values after the next sync.
 
@@ -238,7 +283,7 @@ because the delete wins.
 
 ### 6.5 Push (drain the Outbox, in order)
 - **Insert**: `values.append` to the target year tab (create the tab first if missing).
-- **Update / Delete**: re-read column G (IDs) of the tab to find the current row
+- **Update / Delete**: re-read column H (IDs) of the tab to find the current row
   number, then `batchUpdate` the row (update) or `deleteDimension` (delete).
   The re-read is done just before writing to minimize races with hand edits.
 - **Year change**: delete from the old tab and append to the new one.
@@ -250,6 +295,26 @@ because the delete wins.
 ### 6.6 Quotas
 The Sheets API allows 60 read requests and 60 write requests per minute per user. One sync cycle uses ≤ 5 calls
 plus 2 per pending update/delete. Outbox items are batched where possible.
+
+
+### 6.7 Exchange rates and totals
+- All totals (day totals, and later reports) are in `main_currency` (PLN), computed as
+  `Amount × Rate` using the rate **on the expense date**.
+- **Rate source**: when `main_currency` is PLN, the NBP API table A mid rates (`api.nbp.pl`),
+  which is free, needs no key, and is the official PLN reference. If a currency is missing
+  from table A, table B is used. For any other main currency, ECB rates via
+  `api.frankfurter.app`. Both sit behind one `ExchangeRateProvider` interface.
+- **Which day**: the latest published rate on or before the expense date. NBP doesn't
+  publish on weekends or holidays, so the previous business day's rate is used.
+  A same-day expense made before that day's rate is published uses the previous table's rate.
+- **When it is filled in**: on Add, if the currency ≠ main and the device is online, the rate is fetched and
+  stored with the entry. If offline, the entry is saved without a rate and marked
+  `rate pending`. The sync job fills in the rate, then pushes. Totals show `≈` with the most recent
+  known rate until then.
+- **On Date or Currency change** (in the app): the rate is re-fetched.
+- **Rows typed by hand** with a foreign currency and an empty Rate: the app fills the Rate cell
+  on sync, just like a missing ID. A non-empty Rate is never overwritten.
+- Rates are cached locally per (currency, date), so there is at most one request per currency per day.
 
 ---
 
@@ -263,18 +328,20 @@ entry(
   what TEXT,
   what_norm TEXT,          -- lowercased, diacritics stripped (for search/autocomplete)
   category TEXT,
-  amount_minor INTEGER,    -- 3530 = 35.30
+  amount_minor INTEGER,    -- 3530 = 35.30; negative = refund
   currency TEXT,
+  rate TEXT NULL,          -- decimal string to main currency; NULL = main currency or pending
   status TEXT,             -- synced | pending | invalid
   raw_json TEXT NULL       -- original cells for invalid rows
 )
 outbox(seq PK, op, entry_id, payload_json, attempts, last_error)
-category(name PK, icon, color, archived, position)
-sync_state(key PK, value) -- drive_version, last_pull_at, spreadsheet_id, tz, default_currency
+category(name PK, emoji, archived, position)
+fx_rate(currency, date, rate, PK(currency, date))
+sync_state(key PK, value) -- drive_version, last_pull_at, spreadsheet_id, tz, main_currency
 prefs: my_name, last_currency, spreadsheet_id  (platform key-value store)
 ```
 
-Amounts are always integer minor units internally. There are no floats in the domain.
+Amounts are always integer minor units internally, and rates are exact decimals. There are no floats in the domain.
 
 ---
 
@@ -308,7 +375,7 @@ bucklog/
 - Material 3, with dynamic color on Android 12+ and full dark mode.
 - The keypad is large and thumb-reachable, filling the bottom ~55% of the screen, with ripple and haptics.
 - The amount uses a big display font (tabular numerals) and animates digit shifts.
-- Category chips use their emoji + color accent.
+- Category chips use the emoji, or the first letter of the name when there is none.
 - Subtle transitions between steps. Add → a short success animation, then the app closes.
 - Accessibility: TalkBack labels, dynamic type, and a minimum 48 dp touch target.
 - UI languages: English and Polish (resources from day one).
@@ -355,18 +422,20 @@ bucklog/
 | 2 | Sheet access | Google Sign-In, `drive.file` scope + Google Picker |
 | 3 | Category column | Category name + dropdown validation (not numeric ID) |
 | 4 | Currency | Multi-currency per entry; last used is the default, so no extra tap |
+| 4a | Totals | In main currency (PLN), using the NBP rate on the expense date, stored in a Rate column |
 | 5 | Editing | Any entry (all members), recent first |
 | 6 | Date | "Now" on add; changeable in edit |
 | 7 | Suggestions | Whole family's history, my entries weighted ×2 |
 | 8 | Repo | `losipiuk/bucklog`, private |
+| 9 | Refunds | Negative Amount; off-by-default Refund pill on the amount screen that resets after each Add |
+| 10 | Category metadata | Name + optional emoji + archived; no color |
+| 11 | "Who" | Editable in Edit only (e.g. logging a spouse's cash expense) |
+| 12 | Note field | Not in the Add flow |
+| 13 | Extra sheet columns | Columns after H are ignored and never cleared |
+| 14 | OAuth app | Personal Google Cloud project, consent screen "In production" (§4.1) |
 
 ## 14. Open questions
-1. Should the "who" of an entry be editable to another member (e.g. logging a
-   spouse's cash expense)? Currently yes, in Edit only.
-2. Should the Add flow offer an optional note field, or keep only What?
-3. Who owns the Google Cloud project/OAuth client (a personal account)? The consent
-   screen stays in "Testing" with family members added as test users, or goes
-   "In production" (possible without verification because `drive.file` is non-sensitive).
-4. Should totals ever mix currencies, or always be shown per currency?
-5. Should the app manage a sheet it didn't create, with extra columns the user added?
-   (Proposal: ignore columns after G and never clear them.)
+1. Distribution: Play Console internal testing track (costs a one-time $25 Play developer fee,
+   and updates arrive automatically) or a sideloaded APK?
+2. NBP convention: use the rate on or before the expense date (current proposal), or strictly
+   the previous business day (the Polish tax/accounting convention)?
