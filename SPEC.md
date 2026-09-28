@@ -125,13 +125,14 @@ Key/value pairs:
 - Setup flow for the owner: Sign in → "Create new sheet" (or pick an existing one) →
   enter name → done. Then share the sheet with the family in Google Sheets as usual.
 - Setup flow for other members: Sign in → pick the shared sheet → enter name → done.
-- ⚠️ **Spike needed (M0)**: Google Picker is a web (JS) component. On Android it has
-  to be hosted, e.g. a small static page opened in a Custom Tab/WebView that returns
-  the file ID through an app link. The spike must confirm:
-  1. that Picker-granted `drive.file` access works for Sheets API calls from the app, and
-  2. that a sheet *created by the app* on one account is accessible to other
-     members only after they pick it.
-  Fallback if the spike fails: the `spreadsheets` scope with Google verification.
+- **Picker hosting (validated in M0)**: Google Picker is a web component and needs a
+  Google *web* session, so it can't run in a WebView (Google also blocks sign-in there).
+  It runs on a static page, https://losipiuk.github.io/bucklog-picker/ (public repo
+  `losipiuk/bucklog-picker`), opened in a Chrome Custom Tab. The app passes its access
+  token in the URL fragment, and the page returns the file ID via `net.osipiuk.bucklog://picked`.
+- The `drive.file` grant from picking persists per (user, app, file), including across
+  reinstalls. The app stores the spreadsheet ID and never needs the Picker again for that user.
+  Unpicked files return 404. See `docs/m0-spike.md`.
 
 
 ### 4.1 Google Cloud project (one-time developer setup)
@@ -151,6 +152,8 @@ project**. This is a one-time setup done by the developer, not by family members
   (this includes `drive.file`), so everyone would have to sign in again weekly. With only
   non-sensitive scopes, switching to production needs no verification review.
   The consent screen may show the app as unverified-brand (no logo), which is fine.
+  Publishing requires a home page and privacy policy on an authorized domain; both are
+  hosted in `losipiuk/bucklog-picker` (`about.html`, `privacy.html`).
 - **Who can sign in**: anyone with a Google account can complete the sign-in, but
   they only ever see sheets that they created with the app or picked themselves and that are shared with them.
   The sheet's sharing is the real access control.
