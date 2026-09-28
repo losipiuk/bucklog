@@ -25,6 +25,7 @@ import net.osipiuk.bucklog.domain.normalizeText
 import net.osipiuk.bucklog.ui.AppGraph
 import net.osipiuk.bucklog.ui.Platform
 import net.osipiuk.bucklog.ui.userMessage
+import kotlin.time.Instant
 
 enum class AddStep { AMOUNT, DETAILS }
 
@@ -119,8 +120,8 @@ class AddViewModel(private val graph: AppGraph, private val platform: Platform) 
             }
             graph.store.addCategory(Category(name, emoji = null))
             pickCategory(name)
-            // Best effort now; stays queued if offline (sync retries it in M2).
-            graph.store.config.first().spreadsheetId?.let { graph.categoryUploader.upload(it) }
+            // Upload right away; if that fails it stays queued and the next sync retries.
+            platform.requestSync()
         }
     }
 
@@ -136,7 +137,8 @@ class AddViewModel(private val graph: AppGraph, private val platform: Platform) 
                 graph.store.addEntry(
                     Entry(
                         id = newEntryId(),
-                        timestamp = graph.clock.now(),
+                        // Whole seconds: that's what survives a round trip through the sheet.
+                        timestamp = Instant.fromEpochSeconds(graph.clock.now().epochSeconds),
                         who = config.myName.orEmpty(),
                         what = ui.form.what.trim(),
                         category = category,
@@ -147,6 +149,7 @@ class AddViewModel(private val graph: AppGraph, private val platform: Platform) 
                     ),
                 )
                 graph.store.updateConfig(lastCurrency = ui.currency)
+                platform.requestSync()
                 val emoji = ui.categories.firstOrNull { it.name == category }?.emoji?.let { "$it " }.orEmpty()
                 val prefix = if (ui.form.refund) "Refund " else ""
                 platform.finishWithMessage("$prefix${money.formatWithCode(ui.form.amount.minorUnits, ui.currency)} · $emoji$category")

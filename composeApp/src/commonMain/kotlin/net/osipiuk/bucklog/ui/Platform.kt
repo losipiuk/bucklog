@@ -10,6 +10,9 @@ interface Platform {
     /** Opens Google Picker for spreadsheets; returns null when cancelled. */
     suspend fun pickSheet(preselectFileId: String?): PickedSheet?
 
+    /** Schedules a background sync with the sheet (runs when online, survives the app closing). */
+    fun requestSync()
+
     /** Shows a short confirmation and closes the app (the Add flow's last step). */
     fun finishWithMessage(message: String)
 

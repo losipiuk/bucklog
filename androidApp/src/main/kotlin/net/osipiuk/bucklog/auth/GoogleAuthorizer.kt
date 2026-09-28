@@ -17,7 +17,11 @@ import net.osipiuk.bucklog.google.AuthRequiredException
  * [accountEmail]. Tokens are cached by Play services, so [accessToken] is cheap to call.
  * Granting consent needs an Activity; see AndroidPlatform.signIn.
  */
-class GoogleAuthorizer(context: Context) : AccessTokenProvider {
+class GoogleAuthorizer(
+    context: Context,
+    /** Where to find the account when [accountEmail] isn't set yet (e.g. in a background sync). */
+    private val storedAccount: suspend () -> String?,
+) : AccessTokenProvider {
     private val client = Identity.getAuthorizationClient(context)
 
     @Volatile
@@ -45,7 +49,8 @@ class GoogleAuthorizer(context: Context) : AccessTokenProvider {
     fun tokenFromConsent(data: Intent?): String? = runCatching { client.getAuthorizationResultFromIntent(data).accessToken }.getOrNull()
 
     override suspend fun accessToken(): String {
-        val email = accountEmail ?: throw AuthRequiredException("No Google account selected")
+        val email = accountEmail ?: storedAccount()?.also { accountEmail = it }
+            ?: throw AuthRequiredException("No Google account selected")
         return when (val outcome = authorize(email)) {
             is Outcome.Authorized -> outcome.token
             is Outcome.NeedsConsent -> throw AuthRequiredException("Google consent required")

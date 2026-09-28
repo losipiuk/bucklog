@@ -99,6 +99,8 @@ class SetupViewModel(private val graph: AppGraph, private val platform: Platform
         val name = state.value.name.trim()
         if (name.isEmpty()) return@work
         graph.store.updateConfig(myName = name)
+        // First pull brings in the family's existing entries (and history for suggestions).
+        platform.requestSync()
     }
 
     private suspend fun load(spreadsheetId: String) {

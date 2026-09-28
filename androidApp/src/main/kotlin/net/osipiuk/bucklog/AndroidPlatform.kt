@@ -104,6 +104,8 @@ class AndroidPlatform(
         return deferred.await()
     }
 
+    override fun requestSync() = SyncScheduler.syncNow(activity)
+
     override fun finishWithMessage(message: String) {
         Toast.makeText(activity.applicationContext, message, Toast.LENGTH_SHORT).show()
         activity.finish()

@@ -19,8 +19,8 @@ android {
         applicationId = "net.osipiuk.bucklog"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.compileSdk.get().toInt()
-        versionCode = 2
-        versionName = "0.1.0-m1"
+        versionCode = 3
+        versionName = "0.2.0-m2"
         buildConfigField("String", "PICKER_API_KEY", localProp("bucklog.pickerApiKey"))
         buildConfigField("String", "CLOUD_PROJECT_NUMBER", localProp("bucklog.cloudProjectNumber"))
     }
@@ -45,5 +45,6 @@ dependencies {
     implementation(libs.play.services.auth)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.browser)
+    implementation(libs.androidx.work)
     implementation(libs.sqldelight.android.driver)
 }

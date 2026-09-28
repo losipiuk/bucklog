@@ -10,9 +10,6 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.ui.platform.LocalContext
-import androidx.lifecycle.lifecycleScope
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
 import net.osipiuk.bucklog.ui.BucklogApp
 
 class MainActivity : ComponentActivity() {
@@ -24,9 +21,8 @@ class MainActivity : ComponentActivity() {
         val app = application as BucklogApplication
         platform = AndroidPlatform(this, app.authorizer)
         platform.onIntent(intent)
-        lifecycleScope.launch {
-            app.graph.store.config.first().accountEmail?.let { app.authorizer.accountEmail = it }
-        }
+        // Pick up family and hand-made changes whenever the app opens.
+        SyncScheduler.syncNow(this)
         setContent {
             val context = LocalContext.current
             val dynamic = when {

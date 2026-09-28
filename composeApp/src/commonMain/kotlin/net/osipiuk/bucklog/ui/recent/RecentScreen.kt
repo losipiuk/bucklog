@@ -30,7 +30,9 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import net.osipiuk.bucklog.data.SyncStatus
 import net.osipiuk.bucklog.domain.Entry
+import net.osipiuk.bucklog.domain.EntryStatus
 import net.osipiuk.bucklog.domain.MoneyFormat
 import net.osipiuk.bucklog.ui.AppGraph
 import net.osipiuk.bucklog.ui.AppIcons
@@ -38,15 +40,17 @@ import net.osipiuk.bucklog.ui.LocalExtraColors
 import net.osipiuk.bucklog.ui.Platform
 import net.osipiuk.bucklog.ui.tabular
 
-/** Entries added on this phone. The full History with editing comes in M3. */
+/** Latest family entries and sync status. The full History with editing comes in M3. */
 @Composable
 fun RecentScreen(graph: AppGraph, platform: Platform, onBack: () -> Unit) {
     val entries by remember { graph.store.recentEntries(100) }.collectAsState(emptyList())
     val config by graph.store.config.collectAsState(null)
     val emojis by remember { graph.store.categories.map { list -> list.associate { it.name to it.emoji } } }.collectAsState(emptyMap())
+    val sync by graph.store.syncStatus.collectAsState(null)
     val money = remember { MoneyFormat(decimalSeparator = platform.decimalSeparator) }
     val scope = rememberCoroutineScope()
     var confirmReset by remember { mutableStateOf(false) }
+    var syncing by remember { mutableStateOf(false) }
     platform.BackHandler(enabled = true, onBack = onBack)
 
     Column(Modifier.fillMaxSize().safeDrawingPadding()) {
@@ -57,12 +61,29 @@ fun RecentScreen(graph: AppGraph, platform: Platform, onBack: () -> Unit) {
         }
         config?.let {
             Text(
-                "${it.myName} · ${it.accountEmail}\nSheet: ${it.spreadsheetName}\n" +
-                    "Sync to the sheet arrives in the next version; entries stay on this phone for now.",
+                "${it.myName} · ${it.accountEmail}\nSheet: ${it.spreadsheetName}",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
             )
+        }
+        Row(Modifier.padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                sync.describe(),
+                style = MaterialTheme.typography.bodySmall,
+                color = if (sync?.error != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f),
+            )
+            TextButton(
+                enabled = !syncing,
+                onClick = {
+                    syncing = true
+                    scope.launch {
+                        graph.sync.sync(force = true)
+                        syncing = false
+                    }
+                },
+            ) { Text(if (syncing) "Syncing…" else "Sync now") }
         }
         LazyColumn(Modifier.fillMaxSize()) {
             items(entries, key = { it.id }) { entry ->
@@ -98,19 +119,32 @@ private fun EntryRow(entry: Entry, emoji: String?, money: MoneyFormat) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text(emoji ?: entry.category.take(1), style = MaterialTheme.typography.titleLarge)
+        val invalid = entry.status == EntryStatus.INVALID
+        Text(if (invalid) "⚠️" else emoji ?: entry.category.take(1), style = MaterialTheme.typography.titleLarge)
         Column(Modifier.weight(1f)) {
             Text(entry.what.ifEmpty { entry.category }, style = MaterialTheme.typography.bodyLarge)
+            if (invalid) {
+                Text("Can't read this row in the sheet. Fix it there.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+            }
             Text(
                 "${entry.category} · ${entry.who} · ${time.date} ${time.hour.toString().padStart(2, '0')}:${time.minute.toString().padStart(2, '0')}",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        Text(
+        if (!invalid) Text(
             (if (entry.isRefund) "+" else "") + money.formatWithCode(kotlin.math.abs(entry.amountMinor), entry.currency),
             style = MaterialTheme.typography.bodyLarge.tabular,
             color = if (entry.isRefund) LocalExtraColors.current.refund else MaterialTheme.colorScheme.onSurface,
         )
     }
+}
+
+private fun SyncStatus?.describe(): String {
+    if (this == null) return ""
+    val last = lastSuccess?.toLocalDateTime(TimeZone.currentSystemDefault())?.let {
+        "Synced ${it.date} ${it.hour.toString().padStart(2, '0')}:${it.minute.toString().padStart(2, '0')}"
+    } ?: "Not synced yet"
+    val pending = if (pendingChanges > 0) " · $pendingChanges waiting" else ""
+    return error?.let { "Sync failed: $it$pending" } ?: "$last$pending"
 }
