@@ -10,7 +10,8 @@ CREATE TABLE entry (
     currency TEXT NOT NULL,
     rate TEXT,                        -- to main currency; NULL = main currency or not fetched yet
     status TEXT NOT NULL,             -- PENDING | SYNCED | INVALID
-    raw_json TEXT                     -- original cells of an unparseable sheet row
+    raw_json TEXT,                    -- original cells of an unparseable sheet row
+    in_sheet INTEGER NOT NULL DEFAULT 0 -- 1 once the row is known to exist in the sheet
 );
 
 CREATE INDEX entry_ts ON entry(ts DESC);
@@ -44,8 +45,26 @@ CREATE TABLE setting (
 );
 
 insertEntry:
-INSERT OR REPLACE INTO entry(id, ts, who, what, category, amount_minor, currency, rate, status, raw_json)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+INSERT OR REPLACE INTO entry(id, ts, who, what, category, amount_minor, currency, rate, status, raw_json, in_sheet)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+entryById:
+SELECT * FROM entry WHERE id = ?;
+
+entryIdsInSheet:
+SELECT id FROM entry WHERE in_sheet = 1;
+
+deleteEntry:
+DELETE FROM entry WHERE id = ?;
+
+entriesMissingRate:
+SELECT id, ts, currency FROM entry WHERE currency != ? AND rate IS NULL AND status != 'INVALID';
+
+setRate:
+UPDATE entry SET rate = ?, status = 'PENDING' WHERE id = ?;
+
+markSynced:
+UPDATE entry SET status = 'SYNCED', in_sheet = 1 WHERE id = ?;
 
 recentEntries:
 SELECT * FROM entry ORDER BY ts DESC LIMIT ?;
@@ -60,6 +79,18 @@ enqueue:
 INSERT INTO outbox(op, entry_id) VALUES (?, ?);
 
 outboxSize:
+SELECT count(*) FROM outbox;
+
+pendingEntryOps:
+SELECT seq, op, entry_id FROM outbox WHERE op IN ('UPSERT', 'DELETE') ORDER BY seq;
+
+deleteEntryOpsUpTo:
+DELETE FROM outbox WHERE op IN ('UPSERT', 'DELETE') AND seq <= ?;
+
+deleteEntryOpsFor:
+DELETE FROM outbox WHERE op IN ('UPSERT', 'DELETE') AND entry_id = ?;
+
+pendingCount:
 SELECT count(*) FROM outbox;
 
 outboxByOp:
@@ -82,6 +113,18 @@ INSERT OR REPLACE INTO category(name, emoji, archived, position) VALUES (?, ?, ?
 
 nextCategoryPosition:
 SELECT coalesce(max(position) + 1, 0) FROM category;
+
+getValue:
+SELECT content FROM setting WHERE name = ?;
+
+deleteValue:
+DELETE FROM setting WHERE name = ?;
+
+getRate:
+SELECT rate FROM fx_rate WHERE currency = ? AND date = ?;
+
+putRate:
+INSERT OR REPLACE INTO fx_rate(currency, date, rate) VALUES (?, ?, ?);
 
 putValue:
 INSERT OR REPLACE INTO setting(name, content) VALUES (?, ?);

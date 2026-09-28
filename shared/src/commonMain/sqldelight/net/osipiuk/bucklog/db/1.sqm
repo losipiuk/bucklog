@@ -1,0 +1,2 @@
+-- M2: remember which entries exist in the sheet, so remote deletions can be told apart from new entries.
+ALTER TABLE entry ADD COLUMN in_sheet INTEGER NOT NULL DEFAULT 0;
