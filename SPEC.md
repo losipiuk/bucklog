@@ -137,7 +137,7 @@ Key/value pairs:
 ### 4.1 Google Cloud project (one-time developer setup)
 Any app that calls Google APIs needs an **OAuth client registered in a Google Cloud
 project**. This is a one-time setup done by the developer, not by family members.
-- **Owner**: a personal Google account (yours). It's free; the Sheets and Drive APIs have no cost
+- **Owner**: the Google account for `lukasz@osipiuk.net`. It is also the support contact shown on the consent screen. It's free; the Sheets and Drive APIs have no cost
   at this volume.
 - **What gets created**:
   - Enabled APIs: Google Sheets API, Google Drive API, Google Picker API.
@@ -433,7 +433,7 @@ bucklog/
 | 11 | "Who" | Editable in Edit only (e.g. logging a spouse's cash expense) |
 | 12 | Note field | Not in the Add flow |
 | 13 | Extra sheet columns | Columns after H are ignored and never cleared |
-| 14 | OAuth app | Personal Google Cloud project, consent screen "In production" (§4.1) |
+| 14 | OAuth app | Google Cloud project owned by lukasz@osipiuk.net, consent screen "In production" (§4.1) |
 | 15 | Distribution | Sideloaded APK, one release keystore |
 | 16 | FX rate day | Latest NBP rate published on or before the expense date |
 
