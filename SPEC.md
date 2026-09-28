@@ -200,12 +200,16 @@ The app **launches directly into Add Expense**, with no home screen in between.
 
 **Step 2 — What + Category (one screen)**
 - The text field has focus and the system keyboard is open.
-- Autocomplete suggestions from history show above the keyboard as you type
-  (and before typing: the most frequent/recent items).
-- **Tapping a suggestion** fills What *and* preselects its usual category.
-- Category chips row (horizontally scrollable, emoji + name). The **guessed
-  category is preselected** and first; the rest follow by frequency.
-- Big **Add** button (also the keyboard's IME action).
+- Autocomplete suggestions from history show as a one-line strip under the text field
+  as you type (and before typing: the most frequent/recent items).
+- **Tapping a suggestion** fills What (cursor at the end) *and* preselects its usual category.
+- **All categories are visible at once** as wrapping chips (emoji + name), in the
+  `Categories` tab order so their positions stay stable. The **guessed category is
+  preselected** (highlighted, not moved).
+- A **"Filter or add category"** field above the chips narrows them as you type. When no
+  category has exactly that name, a **＋ name** chip creates it. Enter picks the only match,
+  or creates the category.
+- Big **Add** button that names the selected category ("Add · 🛒 Groceries"); also the keyboard's IME action.
 - For a refund, suggestions and the category guess work the same way, so a refund
   normally lands in the category of the original purchase.
 - Back returns to Step 1 without losing the input.
@@ -224,8 +228,10 @@ The app **launches directly into Add Expense**, with no home screen in between.
   `Σ over occurrences: w_user × decay(age)`, where `w_user = 2` for my own entries and 1 otherwise,
   and `decay` has a ~90-day half-life. Top 5–8 are shown.
 - Category guess for a What text: the category with the highest score among past entries with
-  the same normalized What text. If there is none, a token-based vote (entries sharing words). If
-  there is still none, the category I used most recently.
+  the same normalized What text. If there is none, a token-based vote (entries sharing words).
+  If there is still none, a built-in PL/EN product dictionary (e.g. *mleko, Biedronka → Groceries*;
+  *Orlen, parking → Transport*; typing a category's own name picks it), applied only when the
+  sheet still has the matching default category. Last fallback: the category I used most recently.
 - Everything is computed locally. It must be instant (<16 ms per keystroke at 25k entries).
 
 ### 5.4 History and editing
@@ -243,8 +249,8 @@ The app **launches directly into Add Expense**, with no home screen in between.
 
 ### 5.5 Categories
 - Managed primarily in the `Categories` tab.
-- In the app: a "+ New" chip at the end of the category row creates a category
-  (name, optional emoji) and appends it to the tab.
+- In the app: the category filter field on the Add screen creates a category by name
+  (no emoji; add one in the sheet). It's appended to the tab immediately, or queued in the Outbox when offline.
 - Rename/archive in the app (Settings → Categories). A rename rewrites the
   Category cell in all affected rows (batched update).
 - Rows whose category name isn't in `Categories` (e.g. after a manual rename)
