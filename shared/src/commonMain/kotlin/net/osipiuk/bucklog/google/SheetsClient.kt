@@ -10,12 +10,16 @@ import io.ktor.http.contentType
 import io.ktor.http.encodeURLPathPart
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
 
 @Serializable
-data class SpreadsheetProperties(val title: String, val timeZone: String? = null)
+data class SpreadsheetProperties(val title: String, val timeZone: String? = null, val locale: String? = null)
 
 @Serializable
-data class SheetProperties(val sheetId: Int? = null, val title: String)
+data class GridProperties(val frozenRowCount: Int? = null)
+
+@Serializable
+data class SheetProperties(val sheetId: Int? = null, val title: String, val gridProperties: GridProperties? = null)
 
 @Serializable
 data class Sheet(val properties: SheetProperties)
@@ -41,26 +45,49 @@ private data class BatchGetResponse(val valueRanges: List<ValueRange> = emptyLis
 @Serializable
 private data class WriteValues(val values: List<List<JsonElement>>)
 
+@Serializable
+private data class ValuesBatchUpdate(val valueInputOption: String, val data: List<ValueRange>)
+
+@Serializable
+private data class BatchUpdate(val requests: List<JsonObject>)
+
+@Serializable
+private data class BatchUpdateResponse(val replies: List<JsonObject> = emptyList())
+
 /** Thin wrapper over the Sheets v4 REST API. */
 class SheetsClient(private val api: GoogleApi) {
-    suspend fun create(title: String, sheetTitles: List<String>): Spreadsheet =
+    suspend fun create(spreadsheet: Spreadsheet): Spreadsheet =
         api.call {
             method = HttpMethod.Post
             url(BASE)
             contentType(ContentType.Application.Json)
-            setBody(
-                Spreadsheet(
-                    properties = SpreadsheetProperties(title),
-                    sheets = sheetTitles.map { Sheet(SheetProperties(title = it)) },
-                ),
-            )
+            setBody(spreadsheet)
         }.body()
+
+    /** Structural/format changes; returns one reply object per request (empty for most kinds). */
+    suspend fun batchUpdate(spreadsheetId: String, requests: List<JsonObject>): List<JsonObject> =
+        api.call {
+            method = HttpMethod.Post
+            url("$BASE/$spreadsheetId:batchUpdate")
+            contentType(ContentType.Application.Json)
+            setBody(BatchUpdate(requests))
+        }.body<BatchUpdateResponse>().replies
+
+    /** Writes values to several ranges. RAW stores values as given (no locale-dependent parsing). */
+    suspend fun batchUpdateValues(spreadsheetId: String, data: List<ValueRange>, valueInputOption: String = "RAW") {
+        api.call {
+            method = HttpMethod.Post
+            url("$BASE/$spreadsheetId/values:batchUpdate")
+            contentType(ContentType.Application.Json)
+            setBody(ValuesBatchUpdate(valueInputOption, data))
+        }
+    }
 
     suspend fun get(spreadsheetId: String): Spreadsheet =
         api.call {
             method = HttpMethod.Get
             url("$BASE/$spreadsheetId")
-            parameter("fields", "spreadsheetId,properties(title,timeZone),sheets.properties(sheetId,title)")
+            parameter("fields", "spreadsheetId,properties(title,timeZone,locale),sheets.properties(sheetId,title)")
         }.body()
 
     suspend fun batchGet(spreadsheetId: String, ranges: List<String>): List<ValueRange> =
@@ -72,12 +99,15 @@ class SheetsClient(private val api: GoogleApi) {
             parameter("dateTimeRenderOption", "SERIAL_NUMBER")
         }.body<BatchGetResponse>().valueRanges
 
-    /** Appends rows after the last row of the table found in [range]. Values are parsed as if typed by a user. */
-    suspend fun append(spreadsheetId: String, range: String, rows: List<List<JsonElement>>) {
+    /**
+     * Appends rows after the last row of the table found in [range]. RAW stores values as given;
+     * USER_ENTERED parses them as if typed (locale-dependent).
+     */
+    suspend fun append(spreadsheetId: String, range: String, rows: List<List<JsonElement>>, valueInputOption: String = "RAW") {
         api.call {
             method = HttpMethod.Post
             url("$BASE/$spreadsheetId/values/${range.encodeURLPathPart()}:append")
-            parameter("valueInputOption", "USER_ENTERED")
+            parameter("valueInputOption", valueInputOption)
             parameter("insertDataOption", "INSERT_ROWS")
             contentType(ContentType.Application.Json)
             setBody(WriteValues(rows))

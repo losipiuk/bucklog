@@ -70,7 +70,7 @@ class SheetsClientTest {
 
         val request = requests.single()
         assertEquals("/v4/spreadsheets/abc/values/2026!A:H:append", request.url.encodedPath)
-        assertEquals("USER_ENTERED", request.url.parameters["valueInputOption"])
+        assertEquals("RAW", request.url.parameters["valueInputOption"])
         assertEquals("""{"values":[["2026-09-28 18:42",35.3]]}""", (request.body as TextContent).text)
     }
 

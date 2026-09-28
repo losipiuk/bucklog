@@ -1,0 +1,99 @@
+-- Local working copy of the family sheet (SPEC §7).
+
+CREATE TABLE entry (
+    id TEXT NOT NULL PRIMARY KEY,
+    ts INTEGER NOT NULL,              -- epoch millis
+    who TEXT NOT NULL,
+    what TEXT NOT NULL,
+    category TEXT NOT NULL,
+    amount_minor INTEGER NOT NULL,    -- 3530 = 35.30; negative = refund
+    currency TEXT NOT NULL,
+    rate TEXT,                        -- to main currency; NULL = main currency or not fetched yet
+    status TEXT NOT NULL,             -- PENDING | SYNCED | INVALID
+    raw_json TEXT                     -- original cells of an unparseable sheet row
+);
+
+CREATE INDEX entry_ts ON entry(ts DESC);
+
+-- Local changes not yet written to the sheet, applied in seq order.
+CREATE TABLE outbox (
+    seq INTEGER PRIMARY KEY AUTOINCREMENT,
+    op TEXT NOT NULL,                 -- UPSERT | DELETE (entries) | ADD_CATEGORY
+    entry_id TEXT NOT NULL,           -- entry ID, or category name for ADD_CATEGORY
+    attempts INTEGER NOT NULL DEFAULT 0,
+    last_error TEXT
+);
+
+CREATE TABLE category (
+    name TEXT NOT NULL PRIMARY KEY,
+    emoji TEXT,
+    archived INTEGER NOT NULL DEFAULT 0,
+    position INTEGER NOT NULL
+);
+
+CREATE TABLE fx_rate (
+    currency TEXT NOT NULL,
+    date TEXT NOT NULL,
+    rate TEXT NOT NULL,
+    PRIMARY KEY (currency, date)
+);
+
+CREATE TABLE setting (
+    name TEXT NOT NULL PRIMARY KEY,
+    content TEXT NOT NULL
+);
+
+insertEntry:
+INSERT OR REPLACE INTO entry(id, ts, who, what, category, amount_minor, currency, rate, status, raw_json)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+recentEntries:
+SELECT * FROM entry ORDER BY ts DESC LIMIT ?;
+
+historyItems:
+SELECT what, category, who, ts FROM entry WHERE status != 'INVALID';
+
+recentCurrencies:
+SELECT currency FROM entry GROUP BY currency ORDER BY max(ts) DESC LIMIT ?;
+
+enqueue:
+INSERT INTO outbox(op, entry_id) VALUES (?, ?);
+
+outboxSize:
+SELECT count(*) FROM outbox;
+
+outboxByOp:
+SELECT seq, entry_id FROM outbox WHERE op = ? ORDER BY seq;
+
+deleteOutbox:
+DELETE FROM outbox WHERE seq = ?;
+
+recordOutboxFailure:
+UPDATE outbox SET attempts = attempts + 1, last_error = ? WHERE seq = ?;
+
+categories:
+SELECT * FROM category ORDER BY position;
+
+deleteCategories:
+DELETE FROM category;
+
+insertCategory:
+INSERT OR REPLACE INTO category(name, emoji, archived, position) VALUES (?, ?, ?, ?);
+
+nextCategoryPosition:
+SELECT coalesce(max(position) + 1, 0) FROM category;
+
+putValue:
+INSERT OR REPLACE INTO setting(name, content) VALUES (?, ?);
+
+allValues:
+SELECT * FROM setting;
+
+clearValues:
+DELETE FROM setting;
+
+clearEntries:
+DELETE FROM entry;
+
+clearOutbox:
+DELETE FROM outbox;
