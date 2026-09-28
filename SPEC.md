@@ -27,7 +27,7 @@ Status: draft v0.2 (2026-09-28)
 - Receipt photos and attachments.
 - Bank import.
 - Any backend server.
-- Currency conversion (entries keep their original currency).
+- Rewriting amounts into the main currency. Entries keep their original currency; conversion is only used for totals (§6.7).
 
 ---
 
