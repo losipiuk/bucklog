@@ -156,9 +156,10 @@ project**. This is a one-time setup done by the developer, not by family members
   The sheet's sharing is the real access control.
 - **Secrets**: the Android OAuth client has no secret. The Picker API key is public by
   design and is locked down by API and origin restrictions. Nothing secret lives in the repo.
-- **Distribution**: a Play Console *internal testing* track (up to 100 testers, updates
-  through the Play Store) or a sideloaded APK. If Play App Signing is used, its SHA-1
-  must be added to the Android OAuth client.
+- **Distribution**: a sideloaded APK signed with one fixed release keystore. Its SHA-1
+  is registered in the Android OAuth client. The keystore must be backed up: losing it
+  means family members can't update without uninstalling. Updates are installed by hand
+  from a new APK. An in-app "new version available" check is an idea for later.
 
 ---
 
@@ -433,9 +434,8 @@ bucklog/
 | 12 | Note field | Not in the Add flow |
 | 13 | Extra sheet columns | Columns after H are ignored and never cleared |
 | 14 | OAuth app | Personal Google Cloud project, consent screen "In production" (§4.1) |
+| 15 | Distribution | Sideloaded APK, one release keystore |
+| 16 | FX rate day | Latest NBP rate published on or before the expense date |
 
 ## 14. Open questions
-1. Distribution: Play Console internal testing track (costs a one-time $25 Play developer fee,
-   and updates arrive automatically) or a sideloaded APK?
-2. NBP convention: use the rate on or before the expense date (current proposal), or strictly
-   the previous business day (the Polish tax/accounting convention)?
+None at the moment.
