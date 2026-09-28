@@ -291,16 +291,26 @@ For every local synced row whose ID no longer exists remotely: **delete locally*
 (it was deleted in the sheet). A pending local edit to a row deleted remotely is dropped,
 because the delete wins.
 
-### 6.5 Push (drain the Outbox, in order)
-- **Insert**: `values.append` to the target year tab (create the tab first if missing).
-- **Update / Delete**: re-read column H (IDs) of the tab to find the current row
-  number, then `batchUpdate` the row (update) or `deleteDimension` (delete).
-  The re-read is done just before writing to minimize races with hand edits.
-- **Year change**: delete from the old tab and append to the new one.
-- Idempotency: an insert whose ID is already present remotely becomes an update.
-- On success: clear the Outbox item and store the new Drive `version`.
-- Errors: exponential backoff. Auth errors show a "Sign in again" banner.
-  Permission errors (the sheet was unshared) show a clear message in Settings.
+### 6.5 Push (drain the Outbox)
+Runs right after the pull, using its row numbers (the pull is the "re-read" before writing).
+Queued ops are collapsed per entry (the last one wins) and written in this order:
+1. **Updates** in place: one `values.batchUpdate` (RAW) covering rows whose entry stays in the
+   same tab, plus ID cells for hand-typed rows and duplicates.
+2. **Appends**: new entries, and entries whose date moved them to another year's tab, go into
+   `values.append` with the range starting right below the tab's last row. An append
+   never lands between existing rows, even if there are blank rows. Missing year tabs are created first.
+3. **Deletes**: one `deleteDimension` batch, bottom-up per tab (so lower row numbers stay valid).
+   A move to another year's tab is therefore copy-then-delete: if interrupted, it's
+   duplicated, never lost.
+- Every step is keyed by row ID, so re-running after a partial push converges: an insert
+  whose ID is already in the sheet becomes an update.
+- On success: the Outbox items read at the start are cleared (newer ones stay queued). The Drive
+  `version` stored is the one read *before* the pull, so a change made during the sync
+  (including our own write) causes one more pull next time rather than being missed.
+- A new category that fails to upload fails the whole sync (retried later), so the pull
+  can't drop it locally.
+- Errors: WorkManager retries with exponential backoff (up to 5 attempts). Auth and other 4xx
+  errors aren't retried. The last error is shown in the app.
 
 ### 6.6 Quotas
 The Sheets API allows 60 read requests and 60 write requests per minute per user. One sync cycle uses ≤ 5 calls
