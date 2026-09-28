@@ -1,12 +1,14 @@
 package net.osipiuk.bucklog.ui.recent
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
@@ -120,7 +122,10 @@ private fun EntryRow(entry: Entry, emoji: String?, money: MoneyFormat) {
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         val invalid = entry.status == EntryStatus.INVALID
-        Text(if (invalid) "⚠️" else emoji ?: entry.category.take(1), style = MaterialTheme.typography.titleLarge)
+        // Fixed-width icon slot so descriptions line up whatever the emoji/letter width.
+        Box(Modifier.width(36.dp), contentAlignment = Alignment.Center) {
+            Text(if (invalid) "⚠️" else emoji ?: entry.category.take(1), style = MaterialTheme.typography.titleLarge)
+        }
         Column(Modifier.weight(1f)) {
             Text(entry.what.ifEmpty { entry.category }, style = MaterialTheme.typography.bodyLarge)
             if (invalid) {
