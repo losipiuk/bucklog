@@ -53,7 +53,12 @@ class EditViewModel(
     val form: StateFlow<EditForm?> = _form
     private var tz = TimeZone.currentSystemDefault()
 
-    init {
+    /**
+     * (Re)loads the entry. Called every time the screen opens: the view model outlives the screen
+     * (it's kept per entry), so a previous visit's state (e.g. "saving") must not carry over.
+     */
+    fun load() {
+        _form.value = null
         viewModelScope.launch {
             val config = graph.store.config.first()
             config.timeZone?.let { runCatching { TimeZone.of(it) }.getOrNull() }?.let { tz = it }

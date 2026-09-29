@@ -30,6 +30,7 @@ import androidx.compose.material3.TimePicker
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -46,13 +47,14 @@ import net.osipiuk.bucklog.ui.AppIcons
 import net.osipiuk.bucklog.ui.LocalExtraColors
 import net.osipiuk.bucklog.ui.LocalStrings
 import net.osipiuk.bucklog.ui.add.CurrencyPicker
-import net.osipiuk.bucklog.ui.label
 import net.osipiuk.bucklog.ui.add.label
+import net.osipiuk.bucklog.ui.label
 
 private const val MILLIS_PER_DAY = 86_400_000L
 
 @Composable
 fun EditEntryScreen(vm: EditViewModel, onClose: () -> Unit, onDeleted: (net.osipiuk.bucklog.domain.Entry) -> Unit) {
+    LaunchedEffect(Unit) { vm.load() }
     val state by vm.state.collectAsState()
     val form by vm.form.collectAsState()
     val ui = state ?: return
