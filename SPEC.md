@@ -370,6 +370,18 @@ plus 2 per pending update/delete. Outbox items are batched where possible.
   on sync, just like a missing ID. A non-empty Rate is never overwritten.
 - Rates are cached locally per (currency, date), so there is at most one request per currency per day.
 
+### 6.8 Backups
+- Google Sheets' own version history covers bulk-edit mistakes; backups cover the sheet being deleted
+  or unshared, and mistakes found much later.
+- A backup is a Drive copy of the whole spreadsheet (all tabs and formatting), named
+  "<sheet> backup YYYY-MM-DD", in a "Bucklog backups" folder in the phone user's Drive. Both the folder and
+  the copies are app-created, so `drive.file` covers them.
+- Weekly, run by the sync worker when the Drive version changed since the last backup. The last 8 are
+  kept; older copies in that folder are deleted (never any other file).
+- Per phone (Settings → Backups → Weekly backup to my Drive), so family members don't all pile up
+  copies. It's on by default only for whoever created the sheet. **Back up now** and **Open backups folder** are
+  there too. Restoring = open a copy, or point the app at it (Use another sheet).
+
 ---
 
 ## 7. Local data model
