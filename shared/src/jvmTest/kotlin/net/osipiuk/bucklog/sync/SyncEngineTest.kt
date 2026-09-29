@@ -5,6 +5,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import net.osipiuk.bucklog.data.LocalStore
+import net.osipiuk.bucklog.data.SyncErrorKind
 import net.osipiuk.bucklog.db.BucklogDatabase
 import net.osipiuk.bucklog.domain.Category
 import net.osipiuk.bucklog.domain.Entry
@@ -346,5 +347,6 @@ class SyncEngineTest {
         assertIs<SyncOutcome.Failed>(engine.sync())
 
         assertNotNull(store.syncStatus.first().error)
+        assertEquals(SyncErrorKind.ACCESS, store.syncStatus.first().errorKind, "missing sheet → pick it again")
     }
 }

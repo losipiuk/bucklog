@@ -174,6 +174,9 @@ class LocalStore(
         }
     }
 
+    /** A named value as it changes (e.g. a UI preference). */
+    fun valueFlow(name: String): Flow<String?> = q.getValue(name).asFlow().map { it.executeAsOneOrNull() }
+
     /** Small named values: sync bookkeeping and UI preferences. */
     suspend fun value(name: String): String? = withContext(io) { q.getValue(name).executeAsOneOrNull() }
 
@@ -193,6 +196,7 @@ class LocalStore(
         SyncStatus(
             lastSuccess = values[SyncStatus.LAST_SUCCESS]?.toLongOrNull()?.let(Instant::fromEpochMilliseconds),
             error = values[SyncStatus.ERROR],
+            errorKind = values[SyncStatus.ERROR_KIND]?.let { k -> SyncErrorKind.entries.firstOrNull { it.name == k } },
             pendingChanges = pending,
         )
     }

@@ -12,7 +12,11 @@ import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonObject
 import net.osipiuk.bucklog.data.LocalStore
 import net.osipiuk.bucklog.data.OutboxOp
+import net.osipiuk.bucklog.data.SyncErrorKind
 import net.osipiuk.bucklog.data.SyncStatus
+import kotlinx.io.IOException
+import net.osipiuk.bucklog.google.AuthRequiredException
+import net.osipiuk.bucklog.google.GoogleApiException
 import net.osipiuk.bucklog.domain.Entry
 import net.osipiuk.bucklog.domain.EntryStatus
 import net.osipiuk.bucklog.domain.newEntryId
@@ -72,13 +76,23 @@ class SyncEngine(
             }
             store.putValue(SyncStatus.LAST_SUCCESS, clock.now().toEpochMilliseconds().toString())
             store.putValue(SyncStatus.ERROR, null)
+            store.putValue(SyncStatus.ERROR_KIND, null)
             outcome
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
             store.putValue(SyncStatus.ERROR, e.message ?: e::class.simpleName)
+            store.putValue(SyncStatus.ERROR_KIND, classify(e).name)
             SyncOutcome.Failed(e)
         }
+    }
+
+    private fun classify(e: Exception): SyncErrorKind = when {
+        e is AuthRequiredException -> SyncErrorKind.AUTH
+        e is GoogleApiException && e.httpStatus == 401 -> SyncErrorKind.AUTH
+        e is GoogleApiException && e.httpStatus in setOf(403, 404) -> SyncErrorKind.ACCESS
+        e is IOException -> SyncErrorKind.OFFLINE
+        else -> SyncErrorKind.OTHER
     }
 
     /** What the sheet looked like at pull time. */

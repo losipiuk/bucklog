@@ -7,6 +7,7 @@ import io.ktor.client.engine.mock.respond
 import io.ktor.client.request.HttpRequestData
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
+import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.TextContent
 import io.ktor.http.decodeURLPart
 import io.ktor.http.headersOf
@@ -94,6 +95,13 @@ class FakeGoogle(val spreadsheetId: String = "sheet", val timeZone: String = "Eu
         val path = request.url.encodedPath.decodeURLPart()
         val body = (request.body as? TextContent)?.text?.let { json.parseToJsonElement(it).jsonObject }
         val base = "/v4/spreadsheets/$spreadsheetId"
+        if (spreadsheetId !in path) {
+            return@run respond(
+                """{"error":{"code":404,"message":"Requested entity was not found.","status":"NOT_FOUND"}}""",
+                HttpStatusCode.NotFound,
+                headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
         val response: JsonElement = when {
             path == "/drive/v3/files/$spreadsheetId" -> buildJsonObject {
                 put("id", spreadsheetId); put("name", "Bucklog"); put("version", version.toString())
