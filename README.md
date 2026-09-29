@@ -140,8 +140,9 @@ Google Play. It takes about 7 minutes. Then:
 
    For Google Play, download the bundle instead: `gh release download v0.5.0 --pattern '*.aab'`.
 
-3. **Send it to the people using the app**, e.g. over a messenger. The repo is private, so they can't download it
-   from GitHub themselves. On their phone they open the APK and allow installing from that source. Their data stays.
+3. **Tell the people using the app.** The repo is public, so they can download the APK on their phone from
+   https://github.com/losipiuk/bucklog/releases/latest (or you send them the file). They open the APK and allow
+   installing from that source. It installs over the previous version and their data stays.
 
 Which number to bump: the **patch** for fixes (0.5.0 → 0.5.1), the **minor** for new features (0.5.x → 0.6.0).
 
