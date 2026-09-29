@@ -17,6 +17,7 @@ import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
+import net.osipiuk.bucklog.domain.AmountInput
 import net.osipiuk.bucklog.domain.Category
 import net.osipiuk.bucklog.domain.Entry
 import net.osipiuk.bucklog.domain.MoneyFormat
@@ -26,7 +27,8 @@ import net.osipiuk.bucklog.ui.userMessage
 
 data class EditForm(
     val original: Entry,
-    val amount: String,
+    /** Entered like on the Add keypad: digits only, the decimal point fixed by the currency. */
+    val amount: AmountInput,
     val currency: String,
     val refund: Boolean,
     val what: String,
@@ -40,13 +42,16 @@ data class EditForm(
 
 data class EditUiState(val form: EditForm, val categories: List<Category>, val people: List<String>, val recentCurrencies: List<String>)
 
+/** [amount] as shown in the field, e.g. "55,43" (with the platform's decimal separator). */
+fun EditForm.amountText(money: MoneyFormat): String = money.format(amount.minorUnits, currency)
+
 /** Edit or delete one entry (SPEC §5.4). Changes are queued and synced like new entries. */
 class EditViewModel(
     private val graph: AppGraph,
     private val platform: Platform,
     private val entryId: String,
 ) : ViewModel() {
-    private val money = MoneyFormat(decimalSeparator = platform.decimalSeparator)
+    val money = MoneyFormat(decimalSeparator = platform.decimalSeparator)
     private val _form = MutableStateFlow<EditForm?>(null)
 
     /** Collected directly by text fields: it updates synchronously as the user types. */
@@ -66,7 +71,7 @@ class EditViewModel(
             val at = entry.timestamp.toLocalDateTime(tz)
             _form.value = EditForm(
                 original = entry,
-                amount = money.formatPlain(abs(entry.amountMinor), entry.currency),
+                amount = AmountInput(abs(entry.amountMinor).toString()),
                 currency = entry.currency,
                 refund = entry.isRefund,
                 what = entry.what,
@@ -92,14 +97,20 @@ class EditViewModel(
         )
     }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
+    /** The field's new text → digits typed so far (anything else, like the separator, is ignored). */
+    fun onAmountText(text: String) = update {
+        val digits = text.filter { it.isDigit() }.trimStart('0')
+        copy(amount = if (digits.length > AmountInput.MAX_DIGITS) amount else AmountInput(digits))
+    }
+
     fun update(change: EditForm.() -> EditForm) = _form.update { it?.change()?.copy(error = null) }
 
     fun save(onDone: () -> Unit) {
         val f = _form.value ?: return
-        val minor = MoneyFormat.parse(f.amount, f.currency)
+        val minor = f.amount.minorUnits
         val s = graph.strings
         val error = when {
-            minor == null || minor == 0L -> s.errEnterAmount
+            minor == 0L -> s.errEnterAmount
             f.category.isBlank() -> s.errChooseCategory
             f.who.isBlank() -> s.errWhoPaid
             else -> null
@@ -120,7 +131,7 @@ class EditViewModel(
                         who = f.who.trim(),
                         what = f.what.trim(),
                         category = f.category,
-                        amountMinor = if (f.refund) -minor!! else minor!!,
+                        amountMinor = if (f.refund) -minor else minor,
                         currency = f.currency,
                         // The rate belongs to the currency and day; fetch again if either changed.
                         rate = original.rate.takeIf { sameDay && f.currency == original.currency },

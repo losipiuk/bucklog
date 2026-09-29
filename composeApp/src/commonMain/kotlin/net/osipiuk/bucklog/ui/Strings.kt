@@ -146,7 +146,7 @@ object EnglishStrings : Strings {
     override val who = "Who"
     override val save = "Save"
     override val ok = "OK"
-    override val errEnterAmount = "Enter an amount, e.g. 35.30"
+    override val errEnterAmount = "Enter an amount"
     override val errChooseCategory = "Choose a category"
     override val errWhoPaid = "Who paid?"
 
@@ -267,7 +267,7 @@ object PolishStrings : Strings {
     override val who = "Kto"
     override val save = "Zapisz"
     override val ok = "OK"
-    override val errEnterAmount = "Wpisz kwotę, np. 35,30"
+    override val errEnterAmount = "Wpisz kwotę"
     override val errChooseCategory = "Wybierz kategorię"
     override val errWhoPaid = "Kto zapłacił?"
 

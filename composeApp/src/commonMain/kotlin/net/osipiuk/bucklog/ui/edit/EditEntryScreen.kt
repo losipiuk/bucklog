@@ -20,6 +20,7 @@ import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -38,8 +39,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
@@ -49,6 +52,7 @@ import net.osipiuk.bucklog.ui.LocalStrings
 import net.osipiuk.bucklog.ui.add.CurrencyPicker
 import net.osipiuk.bucklog.ui.add.label
 import net.osipiuk.bucklog.ui.label
+import net.osipiuk.bucklog.ui.tabular
 
 private const val MILLIS_PER_DAY = 86_400_000L
 
@@ -76,11 +80,13 @@ fun EditEntryScreen(vm: EditViewModel, onClose: () -> Unit, onDeleted: (net.osip
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
-                    value = f.amount,
-                    onValueChange = { v -> vm.update { copy(amount = v) } },
+                    // Like the Add keypad: digits shift in from the right; the cursor stays at the end.
+                    value = f.amountText(vm.money).let { TextFieldValue(it, TextRange(it.length)) },
+                    onValueChange = { v -> vm.onAmountText(v.text) },
                     label = { Text(s.amount) },
                     singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    textStyle = LocalTextStyle.current.tabular,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
                     modifier = Modifier.weight(1f),
                 )
                 AssistChip(onClick = { pickingCurrency = true }, label = { Text(f.currency, style = MaterialTheme.typography.titleMedium) })

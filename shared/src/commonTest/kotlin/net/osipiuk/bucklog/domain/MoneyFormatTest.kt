@@ -16,19 +16,6 @@ class MoneyFormatTest {
     }
 
     @Test
-    fun plainFormatAndParseRoundTrip() {
-        assertEquals("3530,00", format.formatPlain(353000, "PLN"))
-        assertEquals(353000, MoneyFormat.parse("3530,00", "PLN"))
-        assertEquals(3530, MoneyFormat.parse("35.3", "PLN"))
-        assertEquals(123450, MoneyFormat.parse("1 234,5", "PLN"))
-        assertEquals(50, MoneyFormat.parse(",5", "PLN"))
-        assertEquals(3530, MoneyFormat.parse("3530", "JPY"))
-        assertEquals(null, MoneyFormat.parse("35,305", "PLN"))
-        assertEquals(null, MoneyFormat.parse("abc", "PLN"))
-        assertEquals(null, MoneyFormat.parse("-5", "PLN"))
-    }
-
-    @Test
     fun usesCurrencyDigits() {
         assertEquals("3 530", format.format(3530, "JPY"))
         assertEquals("3,530", format.format(3530, "TND"))
