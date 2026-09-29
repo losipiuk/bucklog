@@ -1,47 +1,148 @@
 # Bucklog
 
-Family spend tracker (Android first, iOS later) backed by a shared Google Sheet.
+Shared spend tracker (Android first, iOS later) backed by a Google Sheet that everyone
+using it can open and edit.
 
 - [SPEC.md](SPEC.md): product and technical specification
-- [docs/google-cloud-setup.md](docs/google-cloud-setup.md): one-time Google Cloud setup
-- [docs/m0-spike.md](docs/m0-spike.md): M0 spike checklist
+- [docs/google-cloud-setup.md](docs/google-cloud-setup.md): one-time Google Cloud setup (already done for this project)
+- [docs/m0-spike.md](docs/m0-spike.md): results of the M0 access-model spike
+- Companion repo [`losipiuk/bucklog-picker`](https://github.com/losipiuk/bucklog-picker) (public, GitHub Pages):
+  the Google Picker page, the invite landing page and the privacy policy
 
-## Build
+## Repository layout
 
-Requires JDK 21+ and the Android SDK (`local.properties` with `sdk.dir`, or Android Studio).
-
-```
-./gradlew :shared:jvmTest            # shared logic tests, no SDK needed
-./gradlew :androidApp:installDebug   # build + install on a connected device
-```
-
-## Release
-
-The family installs a signed APK (no Play Store).
-
-1. One-time: the release key is `~/.bucklog/bucklog-release.jks`. Its passwords are in `local.properties`
-   (`bucklog.release.*`). **Back up both**: without them, installed apps can't be updated
-   (only uninstalled and reinstalled). Its SHA-1 must be registered as an Android OAuth
-   client (docs/google-cloud-setup.md §4).
-2. Bump `versionCode`/`versionName` in `androidApp/build.gradle.kts`.
-3. `./gradlew :androidApp:assembleRelease` → `androidApp/build/outputs/apk/release/androidApp-release.apk`
-4. Send the APK to family members. They open it and allow installing from that source.
-   Updates install over the old version (same key); local data is kept.
-
-### On GitHub Actions
-
-`.github/workflows/release.yml` builds the same signed APK when you push a tag (`git tag v0.5.0 && git push --tags`)
-or run it from the Actions tab. The APK is attached to the GitHub Release and kept as a workflow artifact.
-It reads these repository secrets (Settings → Secrets and variables → Actions):
-
-| Secret | Value |
+| Module | What |
 |---|---|
-| `BUCKLOG_RELEASE_KEYSTORE_BASE64` | `base64 -i ~/.bucklog/bucklog-release.jks` |
-| `BUCKLOG_RELEASE_STORE_PASSWORD` / `BUCKLOG_RELEASE_KEY_PASSWORD` | from `local.properties` |
-| `BUCKLOG_PICKER_API_KEY` / `BUCKLOG_CLOUD_PROJECT_NUMBER` | from `local.properties` |
+| `shared/` | Kotlin Multiplatform logic: domain, local database (SQLDelight), Sheets/Drive client, sync, backups. Tests run on the JVM. |
+| `composeApp/` | All screens (Compose Multiplatform), shared with the future iOS app. |
+| `androidApp/` | Android entry point: Google sign-in, Picker, background sync, icon, signing. |
 
-Locally, any `local.properties` setting can also come from an environment variable
-(`bucklog.release.storeFile` → `BUCKLOG_RELEASE_STORE_FILE`). `ci.yml` runs the tests and a debug build on every push.
+## Set up a development machine
 
-A debug build and a release build are signed with different keys, so switching between them
-needs an uninstall first. Only the phone's local copy is lost; the sheet has everything that synced.
+Do these once per machine, in order.
+
+### 1. Install the tools
+
+- **JDK 21** or newer, e.g. `brew install --cask temurin@21`
+- **Android Studio** (`brew install --cask android-studio`). Run its setup wizard once to install the Android SDK
+  (default location: `~/Library/Android/sdk`).
+
+### 2. Restore the signing keys
+
+Google only accepts sign-ins from APKs signed with keys whose SHA-1 is registered in the Cloud project
+(see [docs/google-cloud-setup.md](docs/google-cloud-setup.md) §4). Two keys are registered; take both from
+the secrets backup (the `secrets-backup/` folder, kept outside git and backed up separately):
+
+```sh
+cp secrets-backup/debug.keystore ~/.android/debug.keystore          # debug builds
+mkdir -p ~/.bucklog && chmod 700 ~/.bucklog
+cp secrets-backup/bucklog-release.jks ~/.bucklog/bucklog-release.jks  # release builds
+```
+
+On a machine with its own `~/.android/debug.keystore`, either replace it as above or register that
+key's SHA-1 as another Android OAuth client. Otherwise sign-in fails in debug builds.
+
+### 3. Create `local.properties`
+
+Create `local.properties` in the repo root (git ignores it). Start from this template, or copy
+`secrets-backup/local.properties` and fix the paths:
+
+```properties
+# Android SDK (Android Studio writes this for you when you open the project)
+sdk.dir=/Users/<you>/Library/Android/sdk
+
+# Google Picker: needed by every build (debug and release) to choose a sheet
+bucklog.pickerApiKey=AIza…
+bucklog.cloudProjectNumber=651091914436
+
+# Release signing: needed only for assembleRelease
+bucklog.release.storeFile=/Users/<you>/.bucklog/bucklog-release.jks
+bucklog.release.storePassword=…
+bucklog.release.keyAlias=bucklog
+bucklog.release.keyPassword=…
+```
+
+Every setting, where its value comes from, and its equivalents for environment variables and GitHub Actions:
+
+| `local.properties` | Needed for | Where the value comes from | Env variable | GitHub secret |
+|---|---|---|---|---|
+| `sdk.dir` | everything | Android SDK path | `ANDROID_HOME` | none (runners have an SDK) |
+| `bucklog.pickerApiKey` | choosing a sheet (all builds) | Cloud Console → Credentials → API key, or `secrets-backup/local.properties` | `BUCKLOG_PICKER_API_KEY` | `BUCKLOG_PICKER_API_KEY` |
+| `bucklog.cloudProjectNumber` | choosing a sheet (all builds) | Cloud Console → project settings; `651091914436` | `BUCKLOG_CLOUD_PROJECT_NUMBER` | `BUCKLOG_CLOUD_PROJECT_NUMBER` |
+| `bucklog.release.storeFile` | release signing | path to `bucklog-release.jks` | `BUCKLOG_RELEASE_STORE_FILE` | `BUCKLOG_RELEASE_KEYSTORE_BASE64` (the file itself, base64; the workflow writes it to disk) |
+| `bucklog.release.storePassword` | release signing | `secrets-backup/local.properties` | `BUCKLOG_RELEASE_STORE_PASSWORD` | `BUCKLOG_RELEASE_STORE_PASSWORD` |
+| `bucklog.release.keyAlias` | release signing | always `bucklog` | `BUCKLOG_RELEASE_KEY_ALIAS` | none (set in the workflow) |
+| `bucklog.release.keyPassword` | release signing | `secrets-backup/local.properties` (same as the store password) | `BUCKLOG_RELEASE_KEY_PASSWORD` | `BUCKLOG_RELEASE_KEY_PASSWORD` |
+
+A value in `local.properties` wins over the environment variable. Env var names are the property names in
+upper snake case (`bucklog.release.storeFile` → `BUCKLOG_RELEASE_STORE_FILE`).
+
+What happens when something is missing:
+- **Picker settings missing:** the app builds and signs in, but **Choose a shared sheet** fails.
+- **Release settings missing:** `assembleRelease` still succeeds, but produces an **unsigned**
+  `androidApp-release-unsigned.apk` that phones refuse to install. The GitHub release workflow checks for this and fails instead.
+
+### 4. Check it works
+
+```sh
+./gradlew :shared:jvmTest :androidApp:assembleDebug
+```
+
+## Everyday commands
+
+```sh
+./gradlew :shared:jvmTest            # shared logic tests (sync, suggestions, … against a fake Google API)
+./gradlew :androidApp:installDebug   # build and install the debug app on a USB-connected phone
+./gradlew :androidApp:assembleRelease  # signed release APK → androidApp/build/outputs/apk/release/androidApp-release.apk
+```
+
+Debug and release builds are signed with different keys, so a phone can't switch between them without
+uninstalling first. That only clears the phone's local copy; the sheet has everything that synced.
+
+## Releasing
+
+People install a signed APK (there's no Play Store listing). Updates install over the previous version
+as long as they're signed with the same release key.
+
+1. Bump `versionCode` (+1) and `versionName` in `androidApp/build.gradle.kts`, commit and push.
+2. Build the APK, either:
+   - **on GitHub (preferred):** `git tag v0.5.0 && git push --tags`. The **Release** workflow tests, builds and
+     signs the APK and attaches `bucklog-v0.5.0.apk` to a GitHub Release (about 7 minutes). Running the workflow by
+     hand from the Actions tab only keeps the APK as a run artifact.
+   - **locally:** `./gradlew :androidApp:assembleRelease`.
+3. Send the APK to the people using the app (the repo is private, so they can't download it from GitHub
+   themselves). On their phone they open it and allow installing from that source.
+
+## GitHub Actions
+
+| Workflow | Runs on | Does | Secrets |
+|---|---|---|---|
+| `ci.yml` | every push to `main`, pull requests | shared tests, debug build | none |
+| `release.yml` | `v*` tags, manual runs | tests, signed release APK, GitHub Release | the five below |
+
+Repository secrets (Settings → Secrets and variables → Actions), and how to set them from a configured machine:
+
+```sh
+base64 -i ~/.bucklog/bucklog-release.jks | gh secret set BUCKLOG_RELEASE_KEYSTORE_BASE64
+grep '^bucklog.release.storePassword=' local.properties | cut -d= -f2- | gh secret set BUCKLOG_RELEASE_STORE_PASSWORD
+grep '^bucklog.release.keyPassword=' local.properties | cut -d= -f2- | gh secret set BUCKLOG_RELEASE_KEY_PASSWORD
+grep '^bucklog.pickerApiKey=' local.properties | cut -d= -f2- | gh secret set BUCKLOG_PICKER_API_KEY
+grep '^bucklog.cloudProjectNumber=' local.properties | cut -d= -f2- | gh secret set BUCKLOG_CLOUD_PROJECT_NUMBER
+```
+
+## Keeping the secrets safe
+
+The release key and its passwords can't be recovered. Losing them means nobody can install an update
+without uninstalling first. Keep a copy of `secrets-backup/` (keys, `local.properties`,
+and a README with the SHA-1s) somewhere other than this computer, such as a password manager or encrypted cloud storage.
+The GitHub secrets can't be read back, so they don't count as a backup.
+
+## Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| Sign-in fails in a debug build on a new machine | Restore `~/.android/debug.keystore` from the backup (step 2) or register its SHA-1. |
+| Release APK can't sign in | The release key's SHA-1 must be registered as an Android OAuth client (docs/google-cloud-setup.md §4). |
+| "Access blocked: app not verified" for other accounts | The OAuth consent screen must be **In production** (docs/google-cloud-setup.md §3). |
+| Only `androidApp-release-unsigned.apk` appears | Release signing settings are missing (step 3). |
+| `Incremental compilation failed …` | `./gradlew clean`, then build again. |
