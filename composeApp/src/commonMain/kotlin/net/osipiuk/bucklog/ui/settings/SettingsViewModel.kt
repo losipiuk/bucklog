@@ -81,7 +81,6 @@ class SettingsViewModel(private val graph: AppGraph, private val platform: Platf
 
     fun switchSheet() = viewModelScope.launch { graph.store.forgetSheet() }
 
-    fun signOut() = viewModelScope.launch { graph.store.reset() }
 
     suspend fun pendingChanges(): Long = graph.store.syncStatus.first().pendingChanges
 }

@@ -46,6 +46,7 @@ import net.osipiuk.bucklog.ui.AppIcons
 import net.osipiuk.bucklog.ui.LocalStrings
 import net.osipiuk.bucklog.ui.Platform
 import net.osipiuk.bucklog.ui.Strings
+import net.osipiuk.bucklog.ui.clearedMessage
 import net.osipiuk.bucklog.ui.components.EmojiPicker
 import net.osipiuk.bucklog.ui.components.SyncProblemBanner
 import net.osipiuk.bucklog.ui.history.describe
@@ -53,7 +54,6 @@ import net.osipiuk.bucklog.ui.history.isProblem
 
 private sealed interface Confirm {
     data class SwitchSheet(val pending: Long) : Confirm
-    data class SignOut(val pending: Long) : Confirm
     data object DemoData : Confirm
 }
 
@@ -147,11 +147,6 @@ fun SettingsScreen(vm: SettingsViewModel, graph: AppGraph, platform: Platform, o
                 Section(s.developer)
                 OutlinedButton(onClick = { confirm = Confirm.DemoData }) { Text(s.addDemo) }
             }
-
-            Section("")
-            TextButton(onClick = { scope.launch { confirm = Confirm.SignOut(vm.pendingChanges()) } }) {
-                Text(s.signOut, color = MaterialTheme.colorScheme.error)
-            }
         }
     }
 
@@ -166,8 +161,7 @@ fun SettingsScreen(vm: SettingsViewModel, graph: AppGraph, platform: Platform, o
     }
     confirm?.let { c ->
         val (title, message, action) = when (c) {
-            is Confirm.SwitchSheet -> Triple(s.useAnotherSheetQuestion, clearedMessage(s, c.pending), vm::switchSheet)
-            is Confirm.SignOut -> Triple(s.signOutQuestion, clearedMessage(s, c.pending), vm::signOut)
+            is Confirm.SwitchSheet -> Triple(s.useAnotherSheetQuestion, s.clearedMessage(c.pending), vm::switchSheet)
             Confirm.DemoData -> Triple(s.addDemoQuestion, s.addDemoText(ui.config.spreadsheetName.orEmpty()), vm::addDemoData)
         }
         AlertDialog(
@@ -179,9 +173,6 @@ fun SettingsScreen(vm: SettingsViewModel, graph: AppGraph, platform: Platform, o
         )
     }
 }
-
-private fun clearedMessage(s: Strings, pending: Long) =
-    s.localDataCleared + if (pending > 0) "\n\n" + s.pendingWillBeLost(pending) else ""
 
 @Composable
 private fun Section(title: String) {

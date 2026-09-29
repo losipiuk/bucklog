@@ -1,6 +1,7 @@
 package net.osipiuk.bucklog.ui
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -16,7 +17,14 @@ import androidx.compose.ui.unit.dp
 
 /** The ☰ menu on the main screen: less frequent destinations, and room for more flows later. */
 @Composable
-fun MainMenu(graph: AppGraph, onHistory: () -> Unit, onSettings: () -> Unit, onInvite: () -> Unit, onOpenSheet: () -> Unit) {
+fun MainMenu(
+    graph: AppGraph,
+    onHistory: () -> Unit,
+    onSettings: () -> Unit,
+    onInvite: () -> Unit,
+    onOpenSheet: () -> Unit,
+    onSignOut: () -> Unit,
+) {
     val s = LocalStrings.current
     val config by graph.store.config.collectAsState(null)
     ModalDrawerSheet {
@@ -47,6 +55,13 @@ fun MainMenu(graph: AppGraph, onHistory: () -> Unit, onSettings: () -> Unit, onI
         NavigationDrawerItem(
             label = { Text(s.openSheet) }, selected = false, onClick = onOpenSheet, modifier = item,
             icon = { Icon(AppIcons.OpenInNew, contentDescription = null) },
+        )
+        Spacer(Modifier.weight(1f))
+        HorizontalDivider(Modifier.padding(horizontal = 28.dp, vertical = 8.dp))
+        NavigationDrawerItem(
+            label = { Text(s.signOut, color = MaterialTheme.colorScheme.error) }, selected = false, onClick = onSignOut,
+            modifier = item.padding(bottom = 12.dp),
+            icon = { Icon(AppIcons.Logout, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
         )
     }
 }

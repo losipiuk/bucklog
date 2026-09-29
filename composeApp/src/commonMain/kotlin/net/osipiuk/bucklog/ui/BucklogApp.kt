@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -74,6 +75,23 @@ fun BucklogApp(graph: AppGraph, platform: Platform, dynamicScheme: ColorScheme? 
 private fun Screens(graph: AppGraph, platform: Platform) {
     var stack by remember { mutableStateOf(emptyList<Screen>()) }
     var deleted by remember { mutableStateOf<Entry?>(null) }
+    // Set (to the number of unsynced changes) while the sign-out confirmation is showing.
+    var signOutPending by remember { mutableStateOf<Long?>(null) }
+    val appScope = rememberCoroutineScope()
+    val s = LocalStrings.current
+    signOutPending?.let { pending ->
+        AlertDialog(
+            onDismissRequest = { signOutPending = null },
+            title = { Text(s.signOutQuestion) },
+            text = { Text(s.clearedMessage(pending)) },
+            confirmButton = {
+                TextButton(onClick = { signOutPending = null; appScope.launch { graph.store.reset() } }) {
+                    Text(s.continueLabel, color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = { TextButton(onClick = { signOutPending = null }) { Text(s.cancel) } },
+        )
+    }
     fun push(screen: Screen) { stack = stack + screen }
     fun pop() { stack = stack.dropLast(1) }
 
@@ -98,6 +116,7 @@ private fun Screens(graph: AppGraph, platform: Platform) {
                         onHistory = { go { push(Screen.History) } },
                         onSettings = { go { push(Screen.Settings) } },
                         onInvite = { go { push(Screen.Invite) } },
+                        onSignOut = { go { scope.launch { signOutPending = graph.store.syncStatus.first().pendingChanges } } },
                         onOpenSheet = {
                             go {
                                 scope.launch {

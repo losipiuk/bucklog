@@ -425,6 +425,9 @@ object PolishStrings : Strings {
     }
 }
 
+/** Warning before clearing this phone's copy (switching sheets, signing out). */
+fun Strings.clearedMessage(pending: Long) = localDataCleared + if (pending > 0) "\n\n" + pendingWillBeLost(pending) else ""
+
 fun stringsFor(language: String): Strings = if (language == "pl") PolishStrings else EnglishStrings
 
 val LocalStrings = staticCompositionLocalOf<Strings> { EnglishStrings }

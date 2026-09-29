@@ -273,13 +273,14 @@ The app **launches directly into Add Expense**, with no home screen in between.
 - The app itself (APK) is still sent separately.
 
 ### 5.6 Menu and Settings
-- A ☰ button at the top left of the main screen opens a drawer: History, Settings, and
-  Open in Google Sheets. Less frequent and future flows go here, keeping the keypad screen clean
-  (History also stays one tap away on the right). Only the button opens the drawer, not an edge swipe.
-- Your name (used for new entries), Google account, the sheet with **Open in Google Sheets**,
-  sync status and **Sync now**, categories.
-- **Use another sheet** / **Sign out** clear the local copy (warning if changes haven't
-  synced yet), then return to setup.
+- A ☰ button at the top left of the main screen opens a drawer: History, Settings, Invite,
+  Open in Google Sheets, and **Sign out** at the bottom. Less frequent and future flows go here, keeping
+  the keypad screen clean (History also stays one tap away on the right). Only the button opens the
+  drawer, not an edge swipe.
+- Settings: your name (used for new entries), Google account, language, the sheet with **Open in Google
+  Sheets**, sync status and **Sync now**, categories.
+- **Use another sheet** (Settings) and **Sign out** (menu) clear the local copy (warning if changes
+  haven't synced yet), then return to setup.
 - Debug builds only: **Add demo expenses** (~6 months of realistic fake data), for trying out History.
 
 ---
