@@ -5,11 +5,14 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
-// Google Cloud config lives in local.properties (not committed). See docs/google-cloud-setup.md.
+// Google Cloud and signing config: local.properties (not committed), or environment variables on CI
+// (bucklog.release.storeFile → BUCKLOG_RELEASE_STORE_FILE). See docs/google-cloud-setup.md and README.
 val localProps = Properties().apply {
     rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
 }
-fun localProp(name: String) = "\"${localProps.getProperty(name, "")}\""
+fun setting(name: String): String? =
+    localProps.getProperty(name) ?: System.getenv(name.replace(Regex("([a-z])([A-Z])"), "$1_$2").replace('.', '_').uppercase())
+fun localProp(name: String) = "\"${setting(name).orEmpty()}\""
 
 android {
     namespace = "net.osipiuk.bucklog"
@@ -26,14 +29,14 @@ android {
     }
 
     // Release key lives outside the repo (see README "Release"); without it, release builds are unsigned.
-    val releaseStore = localProps.getProperty("bucklog.release.storeFile")?.let(::file)?.takeIf { it.exists() }
+    val releaseStore = setting("bucklog.release.storeFile")?.let(::file)?.takeIf { it.exists() }
     signingConfigs {
         if (releaseStore != null) {
             create("release") {
                 storeFile = releaseStore
-                storePassword = localProps.getProperty("bucklog.release.storePassword")
-                keyAlias = localProps.getProperty("bucklog.release.keyAlias")
-                keyPassword = localProps.getProperty("bucklog.release.keyPassword")
+                storePassword = setting("bucklog.release.storePassword")
+                keyAlias = setting("bucklog.release.keyAlias")
+                keyPassword = setting("bucklog.release.keyPassword")
             }
         }
     }
