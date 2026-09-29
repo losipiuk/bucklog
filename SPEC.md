@@ -324,7 +324,10 @@ Queued ops are collapsed per entry (the last one wins) and written in this order
 - A new category that fails to upload fails the whole sync (retried later), so the pull
   can't drop it locally.
 - Errors: WorkManager retries with exponential backoff (up to 5 attempts). Auth and other 4xx
-  errors aren't retried. The last error is shown in the app.
+  errors aren't retried. The last error is classified (sign-in needed / sheet not accessible /
+  offline / other). The first two show a banner with a one-tap fix (**Sign in** re-authorizes the
+  account; **Choose sheet** reopens the Picker, where picking the same sheet restores access).
+  Offline shows only a calm status line.
 
 ### 6.6 Quotas
 The Sheets API allows 60 read requests and 60 write requests per minute per user. One sync cycle uses ≤ 5 calls
@@ -412,7 +415,10 @@ bucklog/
 - Category chips use the emoji, or the first letter of the name when there is none.
 - Subtle transitions between steps. Add → a short success animation, then the app closes.
 - Accessibility: TalkBack labels, dynamic type, and a minimum 48 dp touch target.
-- UI languages: English and Polish (resources from day one).
+- UI languages: English and Polish (typed Kotlin string tables, shared with iOS), chosen by the
+  system or in Settings. Dates are shown as DD.MM.YYYY.
+- A short ✓ animation confirms Add before the app closes.
+- Adaptive launcher icon (receipt + "+" coin) with a monochrome layer for themed icons.
 
 ---
 
