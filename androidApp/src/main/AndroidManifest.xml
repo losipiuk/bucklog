@@ -7,7 +7,9 @@
         android:name=".BucklogApplication"
         android:label="@string/app_name"
         android:supportsRtl="true"
-        android:theme="@android:style/Theme.Material.Light.NoActionBar">
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher"
+        android:theme="@style/Theme.Bucklog">
         <!--
           singleTask: the Picker's return link comes back to this instance (closing the Custom Tab).
           configChanges: Compose handles rotation/dark mode itself; keeps pending sign-in/pick results alive.
