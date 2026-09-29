@@ -121,8 +121,9 @@ sync with GitHub, or the version was already released. Otherwise it:
 2. commits this as "Release v0.5.0" and tags it `v0.5.0`;
 3. pushes the commit and the tag to GitHub.
 
-The tag starts the **Release** workflow on GitHub, which runs the tests and builds and signs the APK.
-It takes about 7 minutes. Then:
+The tag starts the **Release** workflow on GitHub, which runs the tests and builds two signed files:
+`bucklog-v0.5.0.apk` for installing directly on phones, and `bucklog-v0.5.0.aab` (an app bundle) for uploading to
+Google Play. It takes about 7 minutes. Then:
 
 1. **Wait for the build.** Follow it with the command below, or on the repo's **Actions** tab:
 
@@ -137,6 +138,8 @@ It takes about 7 minutes. Then:
    gh release download v0.5.0 --pattern '*.apk'
    ```
 
+   For Google Play, download the bundle instead: `gh release download v0.5.0 --pattern '*.aab'`.
+
 3. **Send it to the people using the app**, e.g. over a messenger. The repo is private, so they can't download it
    from GitHub themselves. On their phone they open the APK and allow installing from that source. Their data stays.
 
@@ -145,9 +148,10 @@ Which number to bump: the **patch** for fixes (0.5.0 → 0.5.1), the **minor** f
 ### Other ways to build a release APK
 
 - **GitHub Actions without a release:** Actions tab → **Release** → **Run workflow**. The signed APK is only kept as
-  the run's artifact (`bucklog-apk`); nothing is tagged or published.
+  the run's artifact (`bucklog-apk`, which holds both the APK and the .aab); nothing is tagged or published.
 - **Locally:** `./gradlew :androidApp:assembleRelease` →
-  `androidApp/build/outputs/apk/release/androidApp-release.apk` (needs the release settings from step 3).
+  `androidApp/build/outputs/apk/release/androidApp-release.apk`, and `./gradlew :androidApp:bundleRelease` →
+  `androidApp/build/outputs/bundle/release/androidApp-release.aab` (both need the release settings from step 3).
   Bump the version by hand first if it's going to people.
 
 ## GitHub Actions
@@ -155,7 +159,7 @@ Which number to bump: the **patch** for fixes (0.5.0 → 0.5.1), the **minor** f
 | Workflow | Runs on | Does | Secrets |
 |---|---|---|---|
 | `ci.yml` | every push to `main`, pull requests | shared tests, debug build | none |
-| `release.yml` | `v*` tags, manual runs | tests, signed release APK, GitHub Release | the five below |
+| `release.yml` | `v*` tags, manual runs | tests, signed APK and app bundle (.aab), GitHub Release | the five below |
 
 Repository secrets (Settings → Secrets and variables → Actions), and how to set them from a configured machine:
 
