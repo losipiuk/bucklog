@@ -113,18 +113,10 @@ fun EditEntryScreen(vm: EditViewModel, onClose: () -> Unit, onDeleted: (net.osip
                     FilterChip(selected = c.name == f.category, onClick = { vm.update { copy(category = c.name) } }, label = { Text(c.label()) })
                 }
             }
-            OutlinedTextField(
-                value = f.who,
-                onValueChange = { v -> vm.update { copy(who = v) } },
-                label = { Text(s.who) },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
-                modifier = Modifier.fillMaxWidth(),
-            )
-            if (ui.people.size > 1) {
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    ui.people.forEach { p -> FilterChip(selected = p == f.who, onClick = { vm.update { copy(who = p) } }, label = { Text(p) }) }
-                }
+            // Pick-only: the Who column should only ever hold names the family already uses.
+            Text(s.who, style = MaterialTheme.typography.labelLarge)
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                ui.people.forEach { p -> FilterChip(selected = p == f.who, onClick = { vm.update { copy(who = p) } }, label = { Text(p) }) }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(onClick = { pickingDate = true }, modifier = Modifier.weight(1f)) { Text(f.date.label()) }

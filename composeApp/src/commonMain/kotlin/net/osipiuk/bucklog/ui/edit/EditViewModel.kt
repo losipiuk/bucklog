@@ -83,8 +83,12 @@ class EditViewModel(
         }
     }
 
+    private val people = combine(graph.store.people, graph.store.config) { people, config ->
+        (listOfNotNull(config.myName) + people).distinct()
+    }
+
     val state: StateFlow<EditUiState?> = combine(
-        _form, graph.store.categories, graph.store.people, graph.store.recentCurrencies(6),
+        _form, graph.store.categories, people, graph.store.recentCurrencies(6),
     ) { f, categories, people, currencies ->
         f ?: return@combine null
         EditUiState(
@@ -92,7 +96,8 @@ class EditViewModel(
             // Active categories, plus the entry's own even if archived or unknown.
             categories = categories.filter { !it.archived || it.name == f.category } +
                 listOfNotNull(Category(f.category, null).takeIf { c -> c.name.isNotEmpty() && categories.none { it.name == c.name } }),
-            people = people,
+            // Everyone who has entries, me first, plus this entry's own name.
+            people = (people + f.who).filter { it.isNotBlank() }.distinct(),
             recentCurrencies = currencies,
         )
     }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
