@@ -46,14 +46,81 @@ class LocalStore(
     }
 
     /** Stores a new entry and queues it for upload in one transaction. */
-    suspend fun addEntry(entry: Entry) = withContext(io) {
+    suspend fun addEntry(entry: Entry) = addEntries(listOf(entry))
+
+    suspend fun addEntries(entries: List<Entry>) = withContext(io) {
         q.transaction {
-            q.insert(entry, raw = null, inSheet = false)
-            q.enqueue(OP_UPSERT, entry.id)
+            for (entry in entries) {
+                q.insert(entry, raw = null, inSheet = false)
+                q.enqueue(OP_UPSERT, entry.id)
+            }
         }
     }
 
     fun recentEntries(limit: Long): Flow<List<Entry>> = q.recentEntries(limit, ::toEntry).asFlow().mapToList(io)
+
+    /** Every entry, newest first (including rows that couldn't be read). */
+    val allEntries: Flow<List<Entry>> = q.allEntries(::toEntry).asFlow().mapToList(io)
+
+    /** Names in the Who column, most recently active first. */
+    val people: Flow<List<String>> = q.knownPeople().asFlow().mapToList(io)
+
+    /** Saves an edit and queues it for upload. The exchange rate is kept only if [Entry.rate] still holds it. */
+    suspend fun updateEntry(e: Entry) = withContext(io) {
+        q.transaction {
+            q.updateEntry(e.timestamp.toEpochMilliseconds(), e.who, e.what, e.category, e.amountMinor, e.currency, e.rate, e.id)
+            q.enqueue(OP_UPSERT, e.id)
+        }
+    }
+
+    /** Deletes an entry; a row already in the sheet is queued for deletion there. */
+    suspend fun deleteEntry(id: String) = withContext(io) {
+        q.transaction {
+            val inSheet = q.isInSheet(id).executeAsOneOrNull() == 1L
+            q.deleteEntry(id)
+            q.deleteEntryOpsFor(id)
+            if (inSheet) q.enqueue(OP_DELETE, id)
+        }
+    }
+
+    /**
+     * Undo of [deleteEntry]. The entry comes back as new: if its deletion already reached the sheet
+     * it's appended again, otherwise the queued delete is superseded and the row updated in place.
+     */
+    suspend fun restoreEntry(e: Entry) = withContext(io) {
+        q.transaction {
+            q.insert(e.copy(status = EntryStatus.PENDING), raw = null, inSheet = false)
+            q.enqueue(OP_UPSERT, e.id)
+        }
+    }
+
+    /**
+     * Renames a category and/or changes its emoji or archived flag. A rename also moves every
+     * entry to the new name (queued for upload), and the Categories tab row is updated on sync.
+     */
+    suspend fun updateCategory(oldName: String, updated: Category) = withContext(io) {
+        q.transaction {
+            val position = q.categoryPosition(oldName).executeAsOneOrNull() ?: q.nextCategoryPosition().executeAsOne()
+            q.deleteCategory(oldName)
+            q.insertCategory(updated.name, updated.emoji, if (updated.archived) 1 else 0, position)
+            if (updated.name != oldName) {
+                val ids = q.entryIdsWithCategory(oldName).executeAsList()
+                q.recategorize(updated.name, oldName)
+                ids.forEach { q.enqueue(OP_UPSERT, it) }
+            }
+            q.enqueueWithPayload(OP_UPDATE_CATEGORY, oldName, CategoryUpdate.encode(updated))
+        }
+    }
+
+    /** Queued category changes, oldest first. */
+    suspend fun pendingCategoryOps(): List<CategoryOp> = withContext(io) {
+        q.categoryOps().executeAsList().map { row ->
+            when (row.op) {
+                OP_ADD_CATEGORY -> CategoryOp.Add(row.seq, row.entry_id)
+                else -> CategoryOp.Update(row.seq, row.entry_id, CategoryUpdate.decode(row.payload!!))
+            }
+        }
+    }
 
     suspend fun entry(id: String): Entry? = withContext(io) { q.entryById(id, ::toEntry).executeAsOneOrNull() }
 
@@ -107,9 +174,10 @@ class LocalStore(
         }
     }
 
-    suspend fun syncValue(name: String): String? = withContext(io) { q.getValue(name).executeAsOneOrNull() }
+    /** Small named values: sync bookkeeping and UI preferences. */
+    suspend fun value(name: String): String? = withContext(io) { q.getValue(name).executeAsOneOrNull() }
 
-    suspend fun putSyncValue(name: String, value: String?) = withContext(io) {
+    suspend fun putValue(name: String, value: String?) = withContext(io) {
         if (value == null) q.deleteValue(name) else q.putValue(name, value)
     }
 
@@ -153,16 +221,21 @@ class LocalStore(
         }
     }
 
-    /** Categories created in the app but not yet in the sheet: outbox seq → name. */
-    suspend fun pendingCategoryAdds(): List<Pair<Long, String>> = withContext(io) {
-        q.outboxByOp(OP_ADD_CATEGORY).executeAsList().map { it.seq to it.entry_id }
-    }
-
     suspend fun completeOutbox(seq: Long) = withContext(io) { q.deleteOutbox(seq) }
 
     suspend fun failOutbox(seq: Long, error: String) = withContext(io) { q.recordOutboxFailure(error, seq) }
 
     suspend fun outboxSize(): Long = withContext(io) { q.outboxSize().executeAsOne() }
+
+    /** Disconnects from the current sheet (keeps name and account); its local copy and queue are dropped. */
+    suspend fun forgetSheet() = withContext(io) {
+        q.transaction {
+            q.clearSheetValues()
+            q.clearEntries()
+            q.clearOutbox()
+            q.deleteCategories()
+        }
+    }
 
     /** Forgets the configuration and all local data (the sheet is untouched). */
     suspend fun reset() = withContext(io) {
@@ -177,6 +250,8 @@ class LocalStore(
     private companion object {
         const val OP_ADD_CATEGORY = "ADD_CATEGORY"
         const val OP_UPSERT = "UPSERT"
+        const val OP_DELETE = "DELETE"
+        const val OP_UPDATE_CATEGORY = "UPDATE_CATEGORY"
     }
 
     private fun toEntry(

@@ -59,24 +59,24 @@ class SyncEngine(
             categories.upload(spreadsheetId)
             // Read the version before pulling: a change made after this point triggers another pull next time.
             val version = drive.getFile(spreadsheetId).version
-            val outcome = if (!force && version != null && version == store.syncValue(SyncStatus.DRIVE_VERSION) &&
-                store.pendingEntryOps().isEmpty() && store.syncValue(SyncStatus.FORMATS_APPLIED) == spreadsheetId
+            val outcome = if (!force && version != null && version == store.value(SyncStatus.DRIVE_VERSION) &&
+                store.pendingEntryOps().isEmpty() && store.value(SyncStatus.FORMATS_APPLIED) == spreadsheetId
             ) {
                 SyncOutcome.UpToDate
             } else {
                 val snapshot = pull(spreadsheetId, tz, config.mainCurrency)
                 fillRates(config.mainCurrency, tz)
                 val pushed = push(spreadsheetId, tz, snapshot)
-                store.putSyncValue(SyncStatus.DRIVE_VERSION, version)
+                store.putValue(SyncStatus.DRIVE_VERSION, version)
                 SyncOutcome.Synced(snapshot.rows.size, pushed)
             }
-            store.putSyncValue(SyncStatus.LAST_SUCCESS, clock.now().toEpochMilliseconds().toString())
-            store.putSyncValue(SyncStatus.ERROR, null)
+            store.putValue(SyncStatus.LAST_SUCCESS, clock.now().toEpochMilliseconds().toString())
+            store.putValue(SyncStatus.ERROR, null)
             outcome
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            store.putSyncValue(SyncStatus.ERROR, e.message ?: e::class.simpleName)
+            store.putValue(SyncStatus.ERROR, e.message ?: e::class.simpleName)
             SyncOutcome.Failed(e)
         }
     }
@@ -194,13 +194,13 @@ class SyncEngine(
         }
         // Appended rows are inserted rows, which don't inherit column formats: reapply them so the
         // Date column shows dates, not serial numbers. Once per spreadsheet, fix every year tab.
-        val formatAll = store.syncValue(SyncStatus.FORMATS_APPLIED) != spreadsheetId
+        val formatAll = store.value(SyncStatus.FORMATS_APPLIED) != spreadsheetId
         val formatTabs = (if (formatAll) snapshot.sheetIds.keys.filter(SheetLayout::isYearTab) else emptyList()) +
             appends.keys.filter { it !in newTabs }
         val requests = formatTabs.distinct().flatMap { SheetLayout.yearTabFormat(snapshot.sheetIds.getValue(it)) } +
             deletes.flatMap { (tab, rowNumbers) -> rowNumbers.sortedDescending().map { deleteRow(snapshot.sheetIds.getValue(tab), it) } }
         if (requests.isNotEmpty()) sheets.batchUpdate(spreadsheetId, requests)
-        if (formatAll) store.putSyncValue(SyncStatus.FORMATS_APPLIED, spreadsheetId)
+        if (formatAll) store.putValue(SyncStatus.FORMATS_APPLIED, spreadsheetId)
         store.completeEntryOps(synced, maxSeq = ops.maxOfOrNull { it.seq } ?: 0)
         return latest.size
     }

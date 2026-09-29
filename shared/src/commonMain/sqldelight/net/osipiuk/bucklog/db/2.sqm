@@ -1,0 +1,2 @@
+-- M3: category edits carry their new values.
+ALTER TABLE outbox ADD COLUMN payload TEXT;

@@ -72,6 +72,6 @@ class CategoryUploaderTest {
 
         assertFailsWith<GoogleApiException> { uploader.upload("abc") }
 
-        assertEquals(1, store.pendingCategoryAdds().size)
+        assertEquals(1, store.pendingCategoryOps().size)
     }
 }

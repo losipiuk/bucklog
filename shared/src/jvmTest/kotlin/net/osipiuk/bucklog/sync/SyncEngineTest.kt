@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import net.osipiuk.bucklog.data.LocalStore
 import net.osipiuk.bucklog.db.BucklogDatabase
+import net.osipiuk.bucklog.domain.Category
 import net.osipiuk.bucklog.domain.Entry
 import net.osipiuk.bucklog.domain.EntryStatus
 import net.osipiuk.bucklog.sheet.CategoryUploader
@@ -235,6 +236,107 @@ class SyncEngineTest {
         assertEquals(batchGets, google.requestCount("values:batchGet"))
         assertNotNull(store.syncStatus.first().lastSuccess)
         assertNull(store.syncStatus.first().error)
+    }
+
+    @Test
+    fun editsRowInPlace() = runTest {
+        store.addEntry(entry("aaaa0001"))
+        store.addEntry(entry("aaaa0002", what = "Eggs"))
+        engine.sync()
+
+        store.updateEntry(local().getValue("aaaa0001").copy(what = "Oat milk", amountMinor = 499))
+        engine.sync()
+
+        val rows = google.rows("2026").drop(1).associateBy { it[7] }
+        assertEquals("Oat milk", rows.getValue("aaaa0001")[2])
+        assertEquals(4.99, rows.getValue("aaaa0001")[4])
+        assertEquals(2, rows.size)
+        assertEquals(EntryStatus.SYNCED, local().getValue("aaaa0001").status)
+    }
+
+    @Test
+    fun movesRowWhenDateChangesYear() = runTest {
+        store.addEntry(entry("aaaa0001"))
+        engine.sync()
+
+        store.updateEntry(local().getValue("aaaa0001").copy(timestamp = Instant.parse("2025-12-31T12:00:00Z")))
+        engine.sync()
+
+        assertEquals(1, google.rows("2026").size)
+        assertEquals("aaaa0001", google.rows("2025")[1][7])
+        assertEquals(setOf("aaaa0001"), local().keys)
+    }
+
+    @Test
+    fun deletesRowsAndSupportsUndo() = runTest {
+        store.addEntry(entry("aaaa0001"))
+        store.addEntry(entry("aaaa0002", what = "Eggs"))
+        engine.sync()
+        val eggs = local().getValue("aaaa0002")
+
+        store.deleteEntry("aaaa0002")
+        engine.sync()
+        assertEquals(listOf("aaaa0001"), google.rows("2026").drop(1).map { it[7] })
+
+        // Undo after the delete already reached the sheet: the row comes back.
+        store.restoreEntry(eggs)
+        engine.sync()
+        assertEquals(setOf("aaaa0001", "aaaa0002"), google.rows("2026").drop(1).map { it[7] }.toSet())
+        assertEquals(setOf("aaaa0001", "aaaa0002"), local().keys)
+    }
+
+    @Test
+    fun undoBeforeSyncKeepsTheRow() = runTest {
+        store.addEntry(entry("aaaa0001"))
+        engine.sync()
+        val milk = local().getValue("aaaa0001")
+
+        store.deleteEntry("aaaa0001")
+        store.restoreEntry(milk)
+        engine.sync()
+
+        assertEquals(listOf("aaaa0001"), google.rows("2026").drop(1).map { it[7] })
+        assertEquals(setOf("aaaa0001"), local().keys)
+    }
+
+    @Test
+    fun deletingAnUnsyncedEntryNeverTouchesTheSheet() = runTest {
+        store.addEntry(entry("aaaa0001"))
+        store.deleteEntry("aaaa0001")
+
+        engine.sync()
+
+        assertEquals(1, google.rows("2026").size)
+        assertEquals(0, store.outboxSize())
+    }
+
+    @Test
+    fun renamingCategoryRewritesRowsAndTheCategoriesTab() = runTest {
+        store.addEntry(entry("aaaa0001"))
+        engine.sync()
+        google.handEdit { appendRow("Categories", "Pets", "🐶", false) } // added by hand meanwhile
+
+        store.updateCategory("Food", Category("Groceries", "🛒"))
+        engine.sync()
+
+        assertEquals("Groceries", google.rows("2026")[1][3])
+        assertEquals(
+            listOf(listOf("Groceries", "🛒", false), listOf("Fuel", "⛽", false), listOf("Pets", "🐶", false)),
+            google.rows("Categories").drop(1),
+        )
+        assertEquals(listOf("Groceries", "Fuel", "Pets"), store.categories.first().map { it.name })
+        assertEquals("Groceries", local().getValue("aaaa0001").category)
+    }
+
+    @Test
+    fun archivingCategoryUpdatesItsRow() = runTest {
+        engine.sync()
+
+        store.updateCategory("Fuel", Category("Fuel", "⛽", archived = true))
+        engine.sync()
+
+        assertEquals(listOf("Fuel", "⛽", true), google.rows("Categories")[2])
+        assertTrue(store.categories.first().single { it.name == "Fuel" }.archived)
     }
 
     @Test

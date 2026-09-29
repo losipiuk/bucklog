@@ -19,10 +19,11 @@ CREATE INDEX entry_ts ON entry(ts DESC);
 -- Local changes not yet written to the sheet, applied in seq order.
 CREATE TABLE outbox (
     seq INTEGER PRIMARY KEY AUTOINCREMENT,
-    op TEXT NOT NULL,                 -- UPSERT | DELETE (entries) | ADD_CATEGORY
-    entry_id TEXT NOT NULL,           -- entry ID, or category name for ADD_CATEGORY
+    op TEXT NOT NULL,                 -- UPSERT | DELETE (entries) | ADD_CATEGORY | UPDATE_CATEGORY
+    entry_id TEXT NOT NULL,           -- entry ID, or the category's name in the sheet for category ops
     attempts INTEGER NOT NULL DEFAULT 0,
-    last_error TEXT
+    last_error TEXT,
+    payload TEXT                      -- UPDATE_CATEGORY: JSON with the new name, emoji and archived flag
 );
 
 CREATE TABLE category (
@@ -51,6 +52,25 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 entryById:
 SELECT * FROM entry WHERE id = ?;
 
+allEntries:
+SELECT * FROM entry ORDER BY ts DESC;
+
+updateEntry:
+UPDATE entry SET ts = ?, who = ?, what = ?, category = ?, amount_minor = ?, currency = ?, rate = ?, status = 'PENDING'
+WHERE id = ?;
+
+isInSheet:
+SELECT in_sheet FROM entry WHERE id = ?;
+
+entryIdsWithCategory:
+SELECT id FROM entry WHERE category = ?;
+
+recategorize:
+UPDATE entry SET category = ?, status = 'PENDING' WHERE category = ?;
+
+knownPeople:
+SELECT who FROM entry WHERE who != '' GROUP BY who ORDER BY max(ts) DESC;
+
 entryIdsInSheet:
 SELECT id FROM entry WHERE in_sheet = 1;
 
@@ -77,6 +97,12 @@ SELECT currency FROM entry GROUP BY currency ORDER BY max(ts) DESC LIMIT ?;
 
 enqueue:
 INSERT INTO outbox(op, entry_id) VALUES (?, ?);
+
+enqueueWithPayload:
+INSERT INTO outbox(op, entry_id, payload) VALUES (?, ?, ?);
+
+categoryOps:
+SELECT seq, op, entry_id, payload FROM outbox WHERE op IN ('ADD_CATEGORY', 'UPDATE_CATEGORY') ORDER BY seq;
 
 outboxSize:
 SELECT count(*) FROM outbox;
@@ -111,6 +137,12 @@ DELETE FROM category;
 insertCategory:
 INSERT OR REPLACE INTO category(name, emoji, archived, position) VALUES (?, ?, ?, ?);
 
+categoryPosition:
+SELECT position FROM category WHERE name = ?;
+
+deleteCategory:
+DELETE FROM category WHERE name = ?;
+
 nextCategoryPosition:
 SELECT coalesce(max(position) + 1, 0) FROM category;
 
@@ -134,6 +166,9 @@ SELECT * FROM setting;
 
 clearValues:
 DELETE FROM setting;
+
+clearSheetValues:
+DELETE FROM setting WHERE name IN ('spreadsheet_id', 'spreadsheet_name', 'main_currency', 'time_zone') OR name LIKE 'sync_%';
 
 clearEntries:
 DELETE FROM entry;
