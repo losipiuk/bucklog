@@ -235,26 +235,37 @@ The app **launches directly into Add Expense**, with no home screen in between.
 - Everything is computed locally. It must be instant (<16 ms per keystroke at 25k entries).
 
 ### 5.4 History and editing
-- Reachable from a `≡` / history icon on the Add screen.
-- A list of entries from all family members, newest first, grouped by day, with
-  day totals in the main currency and infinite scroll. Foreign-currency rows show
-  both, e.g. `24.00 EUR` and `≈ 102.52 PLN` below it. Search box (What, category, who).
-- Each row shows: icon, What, category, who (initial/avatar), amount + currency,
-  and a sync status dot (pending / synced / error).
-- Tap → Edit screen: all fields editable (Date via date+time picker, Who,
-  What, Category, Amount, Currency, Refund toggle). Save / Delete (with Undo snackbar).
-- Refunds show as `+amount` in the income color. Day totals subtract them.
+- Reachable from the history icon on the Add screen.
+- Entries from all family members, newest first, grouped by **Day or Month** (a toggle,
+  remembered). Group headers show the total in the main currency (refunds subtract, ≈ while
+  a rate is pending). Month headers also show a per-category breakdown (largest first). Tapping one
+  filters History to that category.
+- Search box (What, category, who; case- and diacritic-insensitive). Pull to refresh = sync now.
+- Each row shows: category emoji, What, category · who · time (date and time in Month mode),
+  amount + currency, and `≈ 102.52 PLN` under foreign amounts. ⏳ marks changes waiting to sync, and
+  ⚠ marks sheet rows that can't be read (not editable in the app).
+- Tap → Edit screen: all fields editable (Amount, Currency, Refund, What, Category, Who with
+  chips of family names, Date and time pickers). Save, or Delete with an Undo snackbar.
+  Changing the currency or the day drops the stored rate, so it's fetched again.
 - Changing the Date to another year moves the row to the other year tab.
 - Entries changed on the sheet show the updated values after the next sync.
 
 ### 5.5 Categories
-- Managed primarily in the `Categories` tab.
-- In the app: the category filter field on the Add screen creates a category by name
-  (no emoji; add one in the sheet). It's appended to the tab immediately, or queued in the Outbox when offline.
-- Rename/archive in the app (Settings → Categories). A rename rewrites the
-  Category cell in all affected rows (batched update).
+- Managed in the `Categories` tab or in the app.
+- The category filter field on the Add screen creates a category by name.
+- Settings → Categories: add, rename, set an emoji (picker grid of relevant emojis, or type any),
+  archive. A rename rewrites the Category cell of every affected row. Changes to the
+  Categories tab are *targeted*: the app finds the row by the category's old name and changes
+  only that row, so categories others added by hand are never overwritten.
 - Rows whose category name isn't in `Categories` (e.g. after a manual rename)
-  are shown with a neutral "❓ <name>" chip and are counted as that name. Nothing is lost.
+  are shown with the category's first letter and counted under that name. Nothing is lost.
+
+### 5.6 Settings
+- Your name (used for new entries), Google account, the sheet with **Open in Google Sheets**,
+  sync status and **Sync now**, categories.
+- **Use another sheet** / **Sign out** clear the local copy (warning if changes haven't
+  synced yet), then return to setup.
+- Debug builds only: **Add demo expenses** (~6 months of realistic fake data), for trying out History.
 
 ---
 
