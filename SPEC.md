@@ -260,6 +260,18 @@ The app **launches directly into Add Expense**, with no home screen in between.
 - Rows whose category name isn't in `Categories` (e.g. after a manual rename)
   are shown with the category's first letter and counted under that name. Nothing is lost.
 
+### 5.7 Inviting others
+- ☰ → **Invite** (family, flatmates, anyone sharing costs): enter their Google email. Bucklog shares the sheet with them as an
+  Editor (Drive API, allowed under `drive.file`; Google emails them too), then opens the system share sheet
+  with a short message and a join link. **Just send the link** skips the sharing step.
+- The join link is `https://losipiuk.github.io/bucklog-picker/join.html#sheet=…&name=…&from=…` (plain https,
+  so every messenger makes it clickable; the fragment never reaches a server). The page explains the invite
+  in PL/EN, and its button opens `net.osipiuk.bucklog://join?…` in the app.
+- The app keeps the invite until it's used. In setup, after sign-in, **Join "…"** opens the Picker with just
+  that sheet (the one tap that grants access), then the name step. On a phone already connected to another
+  sheet, the app asks before switching. On the same sheet, nothing happens.
+- The app itself (APK) is still sent separately.
+
 ### 5.6 Menu and Settings
 - A ☰ button at the top left of the main screen opens a drawer: History, Settings, and
   Open in Google Sheets. Less frequent and future flows go here, keeping the keypad screen clean
