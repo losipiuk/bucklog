@@ -106,35 +106,41 @@ as long as they're signed with the same release key.
 
 ### Publish a new release
 
-From an up-to-date `main` with no uncommitted changes, pick the next version and run:
+Run these three commands, replacing `0.5.0` with the new version number:
 
 ```sh
-git checkout main && git pull && scripts/release.sh 0.5.0
+git checkout main
+git pull
+scripts/release.sh 0.5.0
 ```
 
-[`scripts/release.sh`](scripts/release.sh) then:
-1. checks that you're on `main`, the working tree is clean, `main` matches `origin/main`, and the tag doesn't exist yet;
-2. bumps `versionCode` by one and sets `versionName` in `androidApp/build.gradle.kts`;
-3. commits "Release v0.5.0", creates the tag `v0.5.0`, and pushes both.
+The release script stops without changing anything if you're not on `main`, have uncommitted changes, aren't in
+sync with GitHub, or the version was already released. Otherwise it:
 
-The tag starts the **Release** workflow. It runs the tests, builds and signs the APK, and about 7 minutes later
-attaches `bucklog-v0.5.0.apk` to the release at
-`https://github.com/losipiuk/bucklog/releases/tag/v0.5.0`. To follow it:
+1. increases `versionCode` by one and sets `versionName` to the new version in `androidApp/build.gradle.kts`;
+2. commits this as "Release v0.5.0" and tags it `v0.5.0`;
+3. pushes the commit and the tag to GitHub.
 
-```sh
-gh run watch $(gh run list --workflow release.yml --limit 1 --json databaseId -q '.[0].databaseId')
-```
+The tag starts the **Release** workflow on GitHub, which runs the tests and builds and signs the APK.
+It takes about 7 minutes. Then:
 
-Then download the APK:
+1. **Wait for the build.** Follow it with the command below, or on the repo's **Actions** tab:
 
-```sh
-gh release download v0.5.0 --pattern '*.apk'
-```
+   ```sh
+   gh run watch $(gh run list --workflow release.yml --limit 1 --json databaseId -q '.[0].databaseId')
+   ```
 
-and send it to the people using the app. The repo is private, so they can't download it from GitHub
-themselves. On their phone they open the APK and allow installing from that source. Their data stays.
+2. **Download the APK.** It's attached to the release at `https://github.com/losipiuk/bucklog/releases/tag/v0.5.0`,
+   or you can fetch it with:
 
-Versions: bump the **patch** (0.5.0 → 0.5.1) for fixes, and the **minor** (0.5.x → 0.6.0) for new features.
+   ```sh
+   gh release download v0.5.0 --pattern '*.apk'
+   ```
+
+3. **Send it to the people using the app**, e.g. over a messenger. The repo is private, so they can't download it
+   from GitHub themselves. On their phone they open the APK and allow installing from that source. Their data stays.
+
+Which number to bump: the **patch** for fixes (0.5.0 → 0.5.1), the **minor** for new features (0.5.x → 0.6.0).
 
 ### Other ways to build a release APK
 
