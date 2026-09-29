@@ -418,7 +418,7 @@ bucklog/
 - UI languages: English and Polish (typed Kotlin string tables, shared with iOS), chosen by the
   system or in Settings. Dates are shown as DD.MM.YYYY.
 - A short ✓ animation confirms Add before the app closes.
-- Adaptive launcher icon (receipt + "+" coin) with a monochrome layer for themed icons.
+- Adaptive launcher icon (a cream wallet with a gold coin slipping in, on rust) with a monochrome layer for themed icons.
 
 ---
 

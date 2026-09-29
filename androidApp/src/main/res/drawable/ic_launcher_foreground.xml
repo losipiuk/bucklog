@@ -1,20 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- A receipt with a "+" coin: adding an expense. 108dp adaptive canvas, art within the 66dp safe zone. -->
+<!-- A wallet with a coin slipping in: the family's spending in one place.
+     108dp adaptive canvas; art stays within the 66dp safe zone. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M38,28 H70 A2,2 0 0 1 72,30 V80 L66,76 L60,80 L54,76 L48,80 L42,76 L36,80 V30 A2,2 0 0 1 38,28 Z" />
-    <path
-        android:fillColor="#3A6A1F"
-        android:pathData="M42,37 h24 v3.5 h-24z M42,45 h24 v3.5 h-24z M42,53 h14 v3.5 h-14z" />
+    <!-- Coin, partly behind the wallet -->
     <path
         android:fillColor="#F2B544"
-        android:pathData="M70,60 a12,12 0 1 1 0,24 a12,12 0 1 1 0,-24 z" />
+        android:pathData="M58,29 a9,9 0 1 1 0,18 a9,9 0 1 1 0,-18 z" />
+    <!-- Wallet body -->
     <path
-        android:fillColor="#3A6A1F"
-        android:pathData="M68.25,65 h3.5 v5.25 h5.25 v3.5 h-5.25 v5.25 h-3.5 v-5.25 h-5.25 v-3.5 h5.25z" />
+        android:fillColor="#FBEFE2"
+        android:pathData="M37,40 H71 A7,7 0 0 1 78,47 V69 A7,7 0 0 1 71,76 H37 A7,7 0 0 1 30,69 V47 A7,7 0 0 1 37,40 Z" />
+    <!-- Clasp flap -->
+    <path
+        android:fillColor="#8C3B2F"
+        android:pathData="M58,50 H78 V66 H58 A8,8 0 0 1 58,50 Z" />
+    <!-- Clasp button -->
+    <path
+        android:fillColor="#FBEFE2"
+        android:pathData="M61,55 a3,3 0 1 1 0,6 a3,3 0 1 1 0,-6 z" />
 </vector>
