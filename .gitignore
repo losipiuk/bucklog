@@ -8,3 +8,6 @@ local.properties
 xcuserdata/
 *.keystore
 *.jks
+
+# Local copy of the release key and passwords (see secrets-backup/README.txt); never commit.
+secrets-backup/
