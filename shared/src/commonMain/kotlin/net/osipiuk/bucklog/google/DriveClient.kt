@@ -14,8 +14,15 @@ data class DriveFile(
     val id: String,
     val name: String,
     val modifiedTime: String? = null,
+    val createdTime: String? = null,
     val version: String? = null,
 )
+
+@Serializable
+private data class FileList(val files: List<DriveFile> = emptyList())
+
+@Serializable
+private data class NewFile(val name: String, val mimeType: String? = null, val parents: List<String>? = null)
 
 @Serializable
 data class DriveUser(val displayName: String? = null, val emailAddress: String? = null)
@@ -34,6 +41,43 @@ class DriveClient(private val api: GoogleApi) {
             url("$BASE/files/$fileId")
             parameter("fields", "id,name,modifiedTime,version")
         }.body()
+
+    /** Files matching a Drive search [query]; under drive.file only the app's own files are visible. */
+    suspend fun find(query: String): List<DriveFile> =
+        api.call {
+            method = HttpMethod.Get
+            url("$BASE/files")
+            parameter("q", query)
+            parameter("fields", "files(id,name,createdTime)")
+            parameter("orderBy", "createdTime desc")
+            parameter("pageSize", 100)
+        }.body<FileList>().files
+
+    suspend fun createFolder(name: String): DriveFile =
+        api.call {
+            method = HttpMethod.Post
+            url("$BASE/files")
+            parameter("fields", "id,name,createdTime")
+            contentType(ContentType.Application.Json)
+            setBody(NewFile(name, mimeType = FOLDER))
+        }.body()
+
+    /** Copies [fileId] (e.g. a whole spreadsheet) into [folderId] under [name]. */
+    suspend fun copy(fileId: String, name: String, folderId: String): DriveFile =
+        api.call {
+            method = HttpMethod.Post
+            url("$BASE/files/$fileId/copy")
+            parameter("fields", "id,name,createdTime")
+            contentType(ContentType.Application.Json)
+            setBody(NewFile(name, parents = listOf(folderId)))
+        }.body()
+
+    suspend fun delete(fileId: String) {
+        api.call {
+            method = HttpMethod.Delete
+            url("$BASE/files/$fileId")
+        }
+    }
 
     /** The signed-in user, as Google sees the access token. */
     suspend fun currentUser(): DriveUser =
@@ -59,7 +103,8 @@ class DriveClient(private val api: GoogleApi) {
         }
     }
 
-        private companion object {
-        const val BASE = "https://www.googleapis.com/drive/v3"
+        companion object {
+        private const val BASE = "https://www.googleapis.com/drive/v3"
+        const val FOLDER = "application/vnd.google-apps.folder"
     }
 }

@@ -38,6 +38,13 @@ class FakeGoogle(val spreadsheetId: String = "sheet", val timeZone: String = "Eu
     class Tab(val sheetId: Int, val rows: MutableList<MutableList<JsonElement>> = mutableListOf())
 
     val tabs = linkedMapOf<String, Tab>()
+
+    /** Other Drive files (backup folder and copies): id → file. The spreadsheet itself isn't listed. */
+    class DriveEntry(val id: String, val name: String, val mimeType: String?, val parents: List<String>, val createdTime: String)
+
+    val driveFiles = linkedMapOf<String, DriveEntry>()
+    private var nextFileNumber = 1
+    private var clockTick = 0
     var version = 1L
         private set
     val requests = mutableListOf<HttpRequestData>()
@@ -95,6 +102,7 @@ class FakeGoogle(val spreadsheetId: String = "sheet", val timeZone: String = "Eu
         val path = request.url.encodedPath.decodeURLPart()
         val body = (request.body as? TextContent)?.text?.let { json.parseToJsonElement(it).jsonObject }
         val base = "/v4/spreadsheets/$spreadsheetId"
+        drive(request, path, body)?.let { return@run respond(it.toString(), headers = headersOf(HttpHeaders.ContentType, "application/json")) }
         if (spreadsheetId !in path) {
             return@run respond(
                 """{"error":{"code":404,"message":"Requested entity was not found.","status":"NOT_FOUND"}}""",
@@ -130,6 +138,39 @@ class FakeGoogle(val spreadsheetId: String = "sheet", val timeZone: String = "Eu
             else -> error("FakeGoogle: unhandled ${request.method.value} $path")
         }
         respond(response.toString(), headers = headersOf(HttpHeaders.ContentType, "application/json"))
+    }
+
+    /** Drive v3 file operations other than the spreadsheet's own metadata; null if not one of them. */
+    private fun drive(request: HttpRequestData, path: String, body: JsonObject?): JsonElement? {
+        fun entry(f: DriveEntry) = buildJsonObject { put("id", f.id); put("name", f.name); put("createdTime", f.createdTime) }
+        fun newFile(name: String, mime: String?, parents: List<String>): DriveEntry {
+            val f = DriveEntry("file${nextFileNumber++}", name, mime, parents, "2026-01-01T00:00:${(clockTick++).toString().padStart(2, '0')}Z")
+            driveFiles[f.id] = f
+            return f
+        }
+        return when {
+            path == "/drive/v3/files" && request.method == HttpMethod.Get -> {
+                val q = request.url.parameters["q"].orEmpty()
+                val parent = Regex("'([^']+)' in parents").find(q)?.groupValues?.get(1)
+                val name = Regex("name = '([^']+)'").find(q)?.groupValues?.get(1)
+                val matches = driveFiles.values.filter { (parent == null || parent in it.parents) && (name == null || it.name == name) }
+                    .sortedByDescending { it.createdTime }
+                buildJsonObject { put("files", JsonArray(matches.map(::entry))) }
+            }
+            path == "/drive/v3/files" && request.method == HttpMethod.Post ->
+                entry(newFile(body!!["name"]!!.jsonPrimitive.content, body["mimeType"]?.jsonPrimitive?.content, emptyList()))
+            path.startsWith("/drive/v3/files/") && path.endsWith("/copy") -> {
+                val parents = body!!["parents"]!!.jsonArray.map { it.jsonPrimitive.content }
+                entry(newFile(body["name"]!!.jsonPrimitive.content, null, parents))
+            }
+            path.startsWith("/drive/v3/files/") && request.method == HttpMethod.Delete -> {
+                driveFiles.remove(path.removePrefix("/drive/v3/files/"))
+                JsonObject(emptyMap())
+            }
+            path.startsWith("/drive/v3/files/") && path.removePrefix("/drive/v3/files/") in driveFiles ->
+                entry(driveFiles.getValue(path.removePrefix("/drive/v3/files/")))
+            else -> null
+        }
     }
 
     private fun spreadsheet() = buildJsonObject {
