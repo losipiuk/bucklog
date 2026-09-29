@@ -90,6 +90,19 @@ class SheetsClientTest {
     }
 
     @Test
+    fun sharesFileAsEditor() = runTest {
+        val engine = MockEngine { request -> requests += request; json("{\"id\":\"p1\"}") }
+        val drive = DriveClient(GoogleApi(HttpClient(engine), tokens))
+
+        drive.shareWith("abc", "anna@example.com", "Join us")
+
+        val request = requests.single()
+        assertEquals("/drive/v3/files/abc/permissions", request.url.encodedPath)
+        assertEquals("true", request.url.parameters["sendNotificationEmail"])
+        assertEquals("""{"role":"writer","type":"user","emailAddress":"anna@example.com"}""", (request.body as TextContent).text)
+    }
+
+    @Test
     fun surfacesGoogleErrorDetails() = runTest {
         val sheets = client {
             json("""{"error":{"code":404,"message":"Requested entity was not found.","status":"NOT_FOUND"}}""", HttpStatusCode.NotFound)
