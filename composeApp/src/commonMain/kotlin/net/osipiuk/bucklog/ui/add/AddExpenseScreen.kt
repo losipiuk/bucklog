@@ -1,44 +1,44 @@
 package net.osipiuk.bucklog.ui.add
 
-import net.osipiuk.bucklog.ui.AppIcons
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.Alignment
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Icon
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.background
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.unit.dp
 import net.osipiuk.bucklog.ui.AppGraph
+import net.osipiuk.bucklog.ui.AppIcons
 import net.osipiuk.bucklog.ui.Platform
 import net.osipiuk.bucklog.ui.components.SyncProblemBanner
 
 @Composable
-fun AddExpenseScreen(vm: AddViewModel, graph: AppGraph, platform: Platform, onOpenHistory: () -> Unit) {
+fun AddExpenseScreen(vm: AddViewModel, graph: AppGraph, platform: Platform, onOpenHistory: () -> Unit, onOpenMenu: () -> Unit) {
     val state by vm.state.collectAsState()
     val sync by graph.store.syncStatus.collectAsState(null)
     val ui = state ?: return
@@ -66,6 +66,7 @@ fun AddExpenseScreen(vm: AddViewModel, graph: AppGraph, platform: Platform, onOp
                     onCurrencyClick = { pickingCurrency = true },
                     onNext = vm::next,
                     onOpenHistory = onOpenHistory,
+                    onOpenMenu = onOpenMenu,
                 )
                 AddStep.DETAILS -> DetailsStep(
                     state = ui,

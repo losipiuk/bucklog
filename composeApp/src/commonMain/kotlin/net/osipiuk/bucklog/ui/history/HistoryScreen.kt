@@ -83,7 +83,6 @@ fun HistoryScreen(
     onDeletedShown: () -> Unit,
     onBack: () -> Unit,
     onEdit: (String) -> Unit,
-    onSettings: () -> Unit,
 ) {
     val state by vm.state.collectAsState()
     val refreshing by vm.refreshing.collectAsState()
@@ -106,7 +105,6 @@ fun HistoryScreen(
             Row(Modifier.padding(4.dp), verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = onBack) { Icon(AppIcons.ArrowBack, contentDescription = s.back) }
                 Text(s.history, style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
-                IconButton(onClick = onSettings) { Icon(AppIcons.Settings, contentDescription = s.settings) }
             }
             val ui = state ?: return@Column
             SyncProblemBanner(ui.sync, graph, platform)

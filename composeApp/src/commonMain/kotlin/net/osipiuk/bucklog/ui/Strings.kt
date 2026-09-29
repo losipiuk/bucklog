@@ -38,6 +38,8 @@ interface Strings {
     val undo: String
     val back: String
     val settings: String
+    val menu: String
+    val openSheet: String
     val search: String
     val clearSearch: String
     val day: String
@@ -154,6 +156,8 @@ object EnglishStrings : Strings {
     override val undo = "Undo"
     override val back = "Back"
     override val settings = "Settings"
+    override val menu = "Menu"
+    override val openSheet = "Open in Google Sheets"
     override val search = "Search"
     override val clearSearch = "Clear search"
     override val day = "Day"
@@ -275,6 +279,8 @@ object PolishStrings : Strings {
     override val undo = "Cofnij"
     override val back = "Wstecz"
     override val settings = "Ustawienia"
+    override val menu = "Menu"
+    override val openSheet = "Otwórz w Arkuszach Google"
     override val search = "Szukaj"
     override val clearSearch = "Wyczyść"
     override val day = "Dzień"

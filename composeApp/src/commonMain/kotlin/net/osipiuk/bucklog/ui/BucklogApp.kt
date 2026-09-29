@@ -4,16 +4,22 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material3.ColorScheme
+import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Surface
+import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import net.osipiuk.bucklog.domain.Entry
 import net.osipiuk.bucklog.ui.add.AddExpenseScreen
 import net.osipiuk.bucklog.ui.add.AddViewModel
@@ -66,7 +72,40 @@ private fun Screens(graph: AppGraph, platform: Platform) {
     platform.BackHandler(enabled = stack.isNotEmpty(), onBack = ::pop)
     val padding = Modifier.fillMaxSize().safeDrawingPadding().imePadding()
     when (val top = stack.lastOrNull()) {
-        null -> AddExpenseScreen(viewModel { AddViewModel(graph, platform) }, graph, platform, onOpenHistory = { push(Screen.History) })
+        null -> {
+            val drawer = rememberDrawerState(DrawerValue.Closed)
+            val scope = rememberCoroutineScope()
+            fun go(action: () -> Unit) {
+                scope.launch { drawer.close() }
+                action()
+            }
+            platform.BackHandler(enabled = drawer.isOpen) { scope.launch { drawer.close() } }
+            ModalNavigationDrawer(
+                drawerState = drawer,
+                // Only the ☰ button opens it: an edge swipe would fight the keypad and the back gesture.
+                gesturesEnabled = drawer.isOpen,
+                drawerContent = {
+                    MainMenu(
+                        graph,
+                        onHistory = { go { push(Screen.History) } },
+                        onSettings = { go { push(Screen.Settings) } },
+                        onOpenSheet = {
+                            go {
+                                scope.launch {
+                                    graph.store.config.first().spreadsheetId?.let { platform.openUrl("https://docs.google.com/spreadsheets/d/$it/edit") }
+                                }
+                            }
+                        },
+                    )
+                },
+            ) {
+                AddExpenseScreen(
+                    viewModel { AddViewModel(graph, platform) }, graph, platform,
+                    onOpenHistory = { push(Screen.History) },
+                    onOpenMenu = { scope.launch { drawer.open() } },
+                )
+            }
+        }
         Screen.History -> Surface(padding) {
             HistoryScreen(
                 vm = viewModel { HistoryViewModel(graph, platform) },
@@ -76,7 +115,6 @@ private fun Screens(graph: AppGraph, platform: Platform) {
                 onDeletedShown = { deleted = null },
                 onBack = ::pop,
                 onEdit = { push(Screen.Edit(it)) },
-                onSettings = { push(Screen.Settings) },
             )
         }
         is Screen.Edit -> Surface(padding) {

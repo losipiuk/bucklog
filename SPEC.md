@@ -260,7 +260,10 @@ The app **launches directly into Add Expense**, with no home screen in between.
 - Rows whose category name isn't in `Categories` (e.g. after a manual rename)
   are shown with the category's first letter and counted under that name. Nothing is lost.
 
-### 5.6 Settings
+### 5.6 Menu and Settings
+- A ☰ button at the top left of the main screen opens a drawer: History, Settings, and
+  Open in Google Sheets. Less frequent and future flows go here, keeping the keypad screen clean
+  (History also stays one tap away on the right). Only the button opens the drawer, not an edge swipe.
 - Your name (used for new entries), Google account, the sheet with **Open in Google Sheets**,
   sync status and **Sync now**, categories.
 - **Use another sheet** / **Sign out** clear the local copy (warning if changes haven't
