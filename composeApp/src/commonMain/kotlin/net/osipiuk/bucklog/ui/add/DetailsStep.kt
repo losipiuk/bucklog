@@ -52,6 +52,7 @@ import net.osipiuk.bucklog.domain.Category
 import net.osipiuk.bucklog.domain.normalizeText
 import net.osipiuk.bucklog.ui.AppIcons
 import net.osipiuk.bucklog.ui.LocalExtraColors
+import net.osipiuk.bucklog.ui.LocalStrings
 import net.osipiuk.bucklog.ui.tabular
 
 @Composable
@@ -68,6 +69,7 @@ fun DetailsStep(
     val keyboard = LocalSoftwareKeyboardController.current
     val haptics = LocalHapticFeedback.current
     var filter by remember { mutableStateOf("") }
+    val s = LocalStrings.current
     // The field owns its text (the view-model state arrives a frame later and would fight the cursor).
     // A tapped suggestion replaces it with the cursor at the end.
     var whatField by remember { mutableStateOf(TextFieldValue(state.form.what, TextRange(state.form.what.length))) }
@@ -100,9 +102,9 @@ fun DetailsStep(
 
     Column(Modifier.fillMaxSize()) {
         Row(Modifier.padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onBack) { Icon(AppIcons.ArrowBack, contentDescription = "Back to amount") }
+            IconButton(onClick = onBack) { Icon(AppIcons.ArrowBack, contentDescription = s.backToAmount) }
             Text(
-                (if (state.form.refund) "Refund +" else "") + "${state.amountText} ${state.currency}",
+                (if (state.form.refund) "${s.refund} +" else "") + "${state.amountText} ${state.currency}",
                 style = MaterialTheme.typography.titleLarge.tabular,
                 color = if (state.form.refund) LocalExtraColors.current.refund else MaterialTheme.colorScheme.onSurface,
             )
@@ -113,7 +115,7 @@ fun DetailsStep(
                 whatField = it
                 onWhatChange(it.text)
             },
-            placeholder = { Text("What did you buy?") },
+            placeholder = { Text(s.whatDidYouBuy) },
             singleLine = true,
             keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences, imeAction = ImeAction.Done),
             keyboardActions = KeyboardActions(onDone = { if (state.canAdd) add() }),
@@ -151,7 +153,7 @@ fun DetailsStep(
             OutlinedTextField(
                 value = filter,
                 onValueChange = { filter = it },
-                placeholder = { Text("Filter or add category") },
+                placeholder = { Text(s.filterOrAddCategory) },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences, imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(onDone = {
@@ -196,7 +198,7 @@ fun DetailsStep(
         ) {
             val selected = state.selectedCategory?.let(categoriesByName::get)
             Text(
-                (if (state.form.refund) "Add refund" else "Add") + (selected?.let { " · ${it.label()}" } ?: ""),
+                (if (state.form.refund) s.addRefund else s.add) + (selected?.let { " · ${it.label()}" } ?: ""),
                 style = MaterialTheme.typography.titleLarge,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,

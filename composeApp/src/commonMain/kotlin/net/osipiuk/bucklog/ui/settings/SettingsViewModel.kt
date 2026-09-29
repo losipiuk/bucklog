@@ -9,22 +9,28 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.datetime.TimeZone
 import net.osipiuk.bucklog.data.AppConfig
 import net.osipiuk.bucklog.data.SyncStatus
-import kotlinx.datetime.TimeZone
 import net.osipiuk.bucklog.domain.Category
 import net.osipiuk.bucklog.domain.DemoData
 import net.osipiuk.bucklog.domain.normalizeText
 import net.osipiuk.bucklog.ui.AppGraph
+import net.osipiuk.bucklog.ui.LANGUAGE_KEY
 import net.osipiuk.bucklog.ui.Platform
 
-data class SettingsUiState(val config: AppConfig, val categories: List<Category>, val sync: SyncStatus)
+data class SettingsUiState(val config: AppConfig, val categories: List<Category>, val sync: SyncStatus, val language: String)
 
 class SettingsViewModel(private val graph: AppGraph, private val platform: Platform) : ViewModel() {
     val syncing = MutableStateFlow(false)
 
-    val state: StateFlow<SettingsUiState?> = combine(graph.store.config, graph.store.categories, graph.store.syncStatus, ::SettingsUiState)
+    val state: StateFlow<SettingsUiState?> = combine(
+        graph.store.config, graph.store.categories, graph.store.syncStatus, graph.store.valueFlow(LANGUAGE_KEY),
+    ) { config, categories, sync, language -> SettingsUiState(config, categories, sync, language ?: "system") }
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+    /** "system", "en" or "pl". */
+    fun setLanguage(code: String) = viewModelScope.launch { graph.store.putValue(LANGUAGE_KEY, code) }
 
     fun saveName(name: String) {
         val trimmed = name.trim()
@@ -47,9 +53,9 @@ class SettingsViewModel(private val graph: AppGraph, private val platform: Platf
     /** Validation message for saving [updated] over [oldName], or null if fine. */
     fun validate(oldName: String?, updated: Category): String? {
         val name = updated.name.trim()
-        if (name.isEmpty()) return "Enter a name"
+        if (name.isEmpty()) return graph.strings.errEnterName
         val clash = state.value?.categories.orEmpty().any { it.name != oldName && normalizeText(it.name) == normalizeText(name) }
-        return if (clash) "“$name” already exists" else null
+        return if (clash) graph.strings.errCategoryExists(name) else null
     }
 
     /** Saves a category edit ([oldName] set) or a new category. */
@@ -66,7 +72,7 @@ class SettingsViewModel(private val graph: AppGraph, private val platform: Platf
         val config = graph.store.config.first()
         val tz = config.timeZone?.let { runCatching { TimeZone.of(it) }.getOrNull() } ?: TimeZone.currentSystemDefault()
         val categories = graph.store.categories.first().filter { !it.archived }.map { it.name }
-        val entries = DemoData.generate(categories, listOf(config.myName.orEmpty(), "Partner"), graph.clock.now(), tz)
+        val entries = DemoData.generate(categories, listOf(config.myName.orEmpty(), graph.strings.demoPartner), graph.clock.now(), tz)
         graph.store.addEntries(entries)
         platform.requestSync()
     }

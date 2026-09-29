@@ -7,6 +7,9 @@ interface Platform {
     /** Lets the user choose a Google account and grant access; returns its email, or null when cancelled. */
     suspend fun signIn(): String?
 
+    /** Asks Google to authorize [email] again (e.g. after access was revoked); true when granted. */
+    suspend fun reauthorize(email: String): Boolean
+
     /** Opens Google Picker for spreadsheets; returns null when cancelled. */
     suspend fun pickSheet(preselectFileId: String?): PickedSheet?
 

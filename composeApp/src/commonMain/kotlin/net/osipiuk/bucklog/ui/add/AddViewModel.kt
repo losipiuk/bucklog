@@ -2,6 +2,7 @@ package net.osipiuk.bucklog.ui.add
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlin.time.Instant
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -25,7 +26,6 @@ import net.osipiuk.bucklog.domain.normalizeText
 import net.osipiuk.bucklog.ui.AppGraph
 import net.osipiuk.bucklog.ui.Platform
 import net.osipiuk.bucklog.ui.userMessage
-import kotlin.time.Instant
 
 enum class AddStep { AMOUNT, DETAILS }
 
@@ -151,13 +151,14 @@ class AddViewModel(private val graph: AppGraph, private val platform: Platform) 
                 graph.store.updateConfig(lastCurrency = ui.currency)
                 platform.requestSync()
                 val emoji = ui.categories.firstOrNull { it.name == category }?.emoji?.let { "$it " }.orEmpty()
-                val prefix = if (ui.form.refund) "Refund " else ""
-                platform.finishWithMessage("$prefix${money.formatWithCode(ui.form.amount.minorUnits, ui.currency)} · $emoji$category")
+                platform.finishWithMessage(
+                    graph.strings.added(money.formatWithCode(ui.form.amount.minorUnits, ui.currency), "$emoji$category", ui.form.refund),
+                )
                 form.value = AddForm()
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                form.update { it.copy(saving = false, error = e.userMessage()) }
+                form.update { it.copy(saving = false, error = e.userMessage(graph.strings)) }
             }
         }
     }

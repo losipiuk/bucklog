@@ -44,7 +44,9 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import net.osipiuk.bucklog.ui.AppIcons
 import net.osipiuk.bucklog.ui.LocalExtraColors
+import net.osipiuk.bucklog.ui.LocalStrings
 import net.osipiuk.bucklog.ui.add.CurrencyPicker
+import net.osipiuk.bucklog.ui.label
 import net.osipiuk.bucklog.ui.add.label
 
 private const val MILLIS_PER_DAY = 86_400_000L
@@ -55,15 +57,16 @@ fun EditEntryScreen(vm: EditViewModel, onClose: () -> Unit, onDeleted: (net.osip
     val form by vm.form.collectAsState()
     val ui = state ?: return
     val f = form ?: return
+    val s = LocalStrings.current
     var pickingCurrency by remember { mutableStateOf(false) }
     var pickingDate by remember { mutableStateOf(false) }
     var pickingTime by remember { mutableStateOf(false) }
 
     Column(Modifier.fillMaxSize().imePadding()) {
         Row(Modifier.padding(4.dp), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onClose) { Icon(AppIcons.Close, contentDescription = "Cancel") }
-            Text("Edit expense", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
-            TextButton(onClick = { vm.delete(onDeleted) }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+            IconButton(onClick = onClose) { Icon(AppIcons.Close, contentDescription = s.cancel) }
+            Text(s.editExpense, style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
+            TextButton(onClick = { vm.delete(onDeleted) }) { Text(s.delete, color = MaterialTheme.colorScheme.error) }
         }
         Column(
             Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp),
@@ -73,7 +76,7 @@ fun EditEntryScreen(vm: EditViewModel, onClose: () -> Unit, onDeleted: (net.osip
                 OutlinedTextField(
                     value = f.amount,
                     onValueChange = { v -> vm.update { copy(amount = v) } },
-                    label = { Text("Amount") },
+                    label = { Text(s.amount) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.weight(1f),
@@ -82,7 +85,7 @@ fun EditEntryScreen(vm: EditViewModel, onClose: () -> Unit, onDeleted: (net.osip
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    "Refund",
+                    s.refund,
                     color = if (f.refund) LocalExtraColors.current.refund else MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.weight(1f),
                 )
@@ -91,12 +94,12 @@ fun EditEntryScreen(vm: EditViewModel, onClose: () -> Unit, onDeleted: (net.osip
             OutlinedTextField(
                 value = f.what,
                 onValueChange = { v -> vm.update { copy(what = v) } },
-                label = { Text("What") },
+                label = { Text(s.what) },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
                 modifier = Modifier.fillMaxWidth(),
             )
-            Text("Category", style = MaterialTheme.typography.labelLarge)
+            Text(s.category, style = MaterialTheme.typography.labelLarge)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 ui.categories.forEach { c ->
                     FilterChip(selected = c.name == f.category, onClick = { vm.update { copy(category = c.name) } }, label = { Text(c.label()) })
@@ -105,7 +108,7 @@ fun EditEntryScreen(vm: EditViewModel, onClose: () -> Unit, onDeleted: (net.osip
             OutlinedTextField(
                 value = f.who,
                 onValueChange = { v -> vm.update { copy(who = v) } },
-                label = { Text("Who") },
+                label = { Text(s.who) },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
                 modifier = Modifier.fillMaxWidth(),
@@ -116,7 +119,7 @@ fun EditEntryScreen(vm: EditViewModel, onClose: () -> Unit, onDeleted: (net.osip
                 }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = { pickingDate = true }, modifier = Modifier.weight(1f)) { Text(f.date.toString()) }
+                OutlinedButton(onClick = { pickingDate = true }, modifier = Modifier.weight(1f)) { Text(f.date.label()) }
                 OutlinedButton(onClick = { pickingTime = true }, modifier = Modifier.weight(1f)) {
                     Text("${f.time.hour.toString().padStart(2, '0')}:${f.time.minute.toString().padStart(2, '0')}")
                 }
@@ -127,7 +130,7 @@ fun EditEntryScreen(vm: EditViewModel, onClose: () -> Unit, onDeleted: (net.osip
             onClick = { vm.save(onClose) },
             enabled = !f.saving,
             modifier = Modifier.fillMaxWidth().padding(16.dp).height(56.dp),
-        ) { Text("Save", style = MaterialTheme.typography.titleLarge) }
+        ) { Text(s.save, style = MaterialTheme.typography.titleLarge) }
     }
 
     if (pickingCurrency) {
@@ -145,9 +148,9 @@ fun EditEntryScreen(vm: EditViewModel, onClose: () -> Unit, onDeleted: (net.osip
                 TextButton(onClick = {
                     picker.selectedDateMillis?.let { ms -> vm.update { copy(date = LocalDate.fromEpochDays(ms / MILLIS_PER_DAY)) } }
                     pickingDate = false
-                }) { Text("OK") }
+                }) { Text(s.ok) }
             },
-            dismissButton = { TextButton(onClick = { pickingDate = false }) { Text("Cancel") } },
+            dismissButton = { TextButton(onClick = { pickingDate = false }) { Text(s.cancel) } },
         ) { DatePicker(picker) }
     }
     if (pickingTime) {
@@ -158,9 +161,9 @@ fun EditEntryScreen(vm: EditViewModel, onClose: () -> Unit, onDeleted: (net.osip
                 TextButton(onClick = {
                     vm.update { copy(time = LocalTime(picker.hour, picker.minute)) }
                     pickingTime = false
-                }) { Text("OK") }
+                }) { Text(s.ok) }
             },
-            dismissButton = { TextButton(onClick = { pickingTime = false }) { Text("Cancel") } },
+            dismissButton = { TextButton(onClick = { pickingTime = false }) { Text(s.cancel) } },
             text = { TimePicker(picker) },
         )
     }

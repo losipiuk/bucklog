@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.sp
 import net.osipiuk.bucklog.domain.AmountKey
 import net.osipiuk.bucklog.ui.AppIcons
 import net.osipiuk.bucklog.ui.LocalExtraColors
+import net.osipiuk.bucklog.ui.LocalStrings
 import net.osipiuk.bucklog.ui.tabular
 
 @Composable
@@ -51,6 +52,7 @@ fun AmountStep(
     onOpenHistory: () -> Unit,
 ) {
     val refund = state.form.refund
+    val s = LocalStrings.current
     val amountColor = when {
         refund -> LocalExtraColors.current.refund
         state.form.amount.isZero -> MaterialTheme.colorScheme.onSurfaceVariant
@@ -60,12 +62,12 @@ fun AmountStep(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("Bucklog", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
             Spacer(Modifier.weight(1f))
-            IconButton(onClick = onOpenHistory) { Icon(AppIcons.History, contentDescription = "History") }
+            IconButton(onClick = onOpenHistory) { Icon(AppIcons.History, contentDescription = s.history) }
         }
         Spacer(Modifier.weight(1f))
         if (refund) {
             Text(
-                "Refund",
+                s.refund,
                 color = amountColor,
                 style = MaterialTheme.typography.labelLarge,
                 modifier = Modifier.fillMaxWidth(),
@@ -91,7 +93,7 @@ fun AmountStep(
             FilterChip(
                 selected = refund,
                 onClick = onToggleRefund,
-                label = { Text("Refund") },
+                label = { Text(s.refund) },
                 leadingIcon = { Icon(AppIcons.Undo, contentDescription = null, Modifier.size(18.dp)) },
                 colors = FilterChipDefaults.filterChipColors(
                     selectedContainerColor = LocalExtraColors.current.refund.copy(alpha = 0.18f),
@@ -111,7 +113,7 @@ fun AmountStep(
             enabled = state.canContinue,
             modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp).height(64.dp),
         ) {
-            Text("Next", style = MaterialTheme.typography.titleLarge)
+            Text(s.next, style = MaterialTheme.typography.titleLarge)
             Spacer(Modifier.size(8.dp))
             Icon(AppIcons.ArrowForward, contentDescription = null)
         }
@@ -140,6 +142,7 @@ private fun Keypad(onKey: (AmountKey) -> Unit, modifier: Modifier) {
 @Composable
 private fun RowScope.Key(key: AmountKey, onKey: (AmountKey) -> Unit) {
     val haptics = LocalHapticFeedback.current
+    val s = LocalStrings.current
     Box(
         Modifier
             .weight(1f)
@@ -159,12 +162,12 @@ private fun RowScope.Key(key: AmountKey, onKey: (AmountKey) -> Unit) {
                 } else {
                     null
                 },
-                onClickLabel = if (key == AmountKey.BACKSPACE) "Delete digit" else null,
+                onClickLabel = if (key == AmountKey.BACKSPACE) s.deleteDigit else null,
             ),
         contentAlignment = Alignment.Center,
     ) {
         when (key) {
-            AmountKey.BACKSPACE -> Icon(AppIcons.Backspace, contentDescription = "Delete", Modifier.size(28.dp))
+            AmountKey.BACKSPACE -> Icon(AppIcons.Backspace, contentDescription = s.delete, Modifier.size(28.dp))
             AmountKey.D00 -> KeyLabel("00")
             else -> KeyLabel(key.ordinal.toString())
         }

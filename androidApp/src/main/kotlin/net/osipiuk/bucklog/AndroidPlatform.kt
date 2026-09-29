@@ -50,17 +50,21 @@ class AndroidPlatform(
         val chosen = awaitResult { activityLauncher.launch(chooser) }
         val email = chosen.data?.getStringExtra(AccountManager.KEY_ACCOUNT_NAME)
             ?.takeIf { chosen.resultCode == Activity.RESULT_OK } ?: return null
+        return email.takeIf { reauthorize(it) }
+    }
+
+    override suspend fun reauthorize(email: String): Boolean {
         when (val outcome = authorizer.authorize(email)) {
             is GoogleAuthorizer.Outcome.Authorized -> Unit
             is GoogleAuthorizer.Outcome.NeedsConsent -> {
                 val consent = awaitResult {
                     intentSenderLauncher.launch(IntentSenderRequest.Builder(outcome.pendingIntent.intentSender).build())
                 }
-                if (consent.resultCode != Activity.RESULT_OK || authorizer.tokenFromConsent(consent.data) == null) return null
+                if (consent.resultCode != Activity.RESULT_OK || authorizer.tokenFromConsent(consent.data) == null) return false
             }
         }
         authorizer.accountEmail = email
-        return email
+        return true
     }
 
     override suspend fun pickSheet(preselectFileId: String?): PickedSheet? {

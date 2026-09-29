@@ -1,15 +1,18 @@
 package net.osipiuk.bucklog.ui
 
+import kotlinx.io.IOException
 import net.osipiuk.bucklog.google.AuthRequiredException
 import net.osipiuk.bucklog.google.GoogleApiException
 
 /** Turns failures into something a family member can act on. */
-fun Throwable.userMessage(): String = when (this) {
-    is AuthRequiredException -> "Google sign-in is needed. Please sign in again."
+fun Throwable.userMessage(s: Strings): String = when (this) {
+    is AuthRequiredException -> s.errSignIn
     is GoogleApiException -> when (httpStatus) {
-        403, 404 -> "Can't open this sheet. Make sure it's shared with you and pick it again."
-        429 -> "Google is busy. Try again in a minute."
-        else -> "Google error ($httpStatus): $message"
+        401 -> s.errSignIn
+        403, 404 -> s.errSheetAccess
+        429 -> s.errBusy
+        else -> s.errGoogle(httpStatus, message.orEmpty())
     }
-    else -> message?.let { "Something went wrong: $it" } ?: "Something went wrong."
+    is IOException -> s.errOffline
+    else -> s.errGeneric(message)
 }

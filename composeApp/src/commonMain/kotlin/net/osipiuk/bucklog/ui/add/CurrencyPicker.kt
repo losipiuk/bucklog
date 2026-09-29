@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import net.osipiuk.bucklog.domain.Currencies
 import net.osipiuk.bucklog.domain.Currency
 import net.osipiuk.bucklog.domain.normalizeText
+import net.osipiuk.bucklog.ui.LocalStrings
 
 @Composable
 fun CurrencyPicker(recent: List<String>, onPick: (String) -> Unit, onDismiss: () -> Unit) {
@@ -37,7 +38,7 @@ fun CurrencyPicker(recent: List<String>, onPick: (String) -> Unit, onDismiss: ()
         OutlinedTextField(
             value = query,
             onValueChange = { query = it },
-            placeholder = { Text("Search currency") },
+            placeholder = { Text(LocalStrings.current.searchCurrency) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
         )

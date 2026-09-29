@@ -17,25 +17,27 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import net.osipiuk.bucklog.ui.LocalStrings
 
-/** Emojis that make sense for spending categories, by theme. */
+/** Emojis that make sense for spending categories, by theme (titles in [Strings.emojiSections]). */
 private val sections = listOf(
-    "Food & shopping" to "🛒 🍎 🥖 🥩 🧀 🥛 🥦 🍕 🍔 🍣 🥗 ☕ 🍺 🍷 🍰 🍦 🍫 🥤 🍽️ 🛍️",
-    "Transport" to "⛽ 🚗 🚕 🚌 🚆 🚇 🚲 🛴 🅿️ 🛞 🔧 🚙",
-    "Home" to "🏠 🛋️ 🛏️ 🧹 🧺 🔨 🪴 🔌 🚿 🧴 🧻 🪑",
-    "Bills & money" to "💡 📱 💻 📺 🌐 🧾 💳 🏦 💰 🔥 💧 📄",
-    "Health & care" to "💊 🩺 🦷 👓 🏥 🧘 🏋️ 💆 💇 🧼",
-    "Kids & family" to "🧸 👶 🍼 🎒 ✏️ 📚 🎨 🧩 🎈 👨‍👩‍👧",
-    "Clothes" to "👕 👖 👗 👟 👠 🧥 🧦 👜 💄 🕶️",
-    "Fun" to "🎬 🎭 🎵 🎮 📖 🎟️ 🏊 ⚽ 🎳 🎲 🎸 📷",
-    "Travel" to "✈️ 🏨 🏖️ 🏔️ 🧳 🗺️ ⛺ 🚢",
-    "Other" to "🎁 💐 🎉 🎂 🐶 🐱 🐾 ⛪ 🤝 📦 ⭐ ❓",
-).map { (title, emojis) -> title to emojis.split(' ') }
+    "🛒 🍎 🥖 🥩 🧀 🥛 🥦 🍕 🍔 🍣 🥗 ☕ 🍺 🍷 🍰 🍦 🍫 🥤 🍽️ 🛍️",
+    "⛽ 🚗 🚕 🚌 🚆 🚇 🚲 🛴 🅿️ 🛞 🔧 🚙",
+    "🏠 🛋️ 🛏️ 🧹 🧺 🔨 🪴 🔌 🚿 🧴 🧻 🪑",
+    "💡 📱 💻 📺 🌐 🧾 💳 🏦 💰 🔥 💧 📄",
+    "💊 🩺 🦷 👓 🏥 🧘 🏋️ 💆 💇 🧼",
+    "🧸 👶 🍼 🎒 ✏️ 📚 🎨 🧩 🎈 👨‍👩‍👧",
+    "👕 👖 👗 👟 👠 🧥 🧦 👜 💄 🕶️",
+    "🎬 🎭 🎵 🎮 📖 🎟️ 🏊 ⚽ 🎳 🎲 🎸 📷",
+    "✈️ 🏨 🏖️ 🏔️ 🧳 🗺️ ⛺ 🚢",
+    "🎁 💐 🎉 🎂 🐶 🐱 🐾 ⛪ 🤝 📦 ⭐ ❓",
+).map { it.split(' ') }
 
 @Composable
 fun EmojiPicker(selected: String?, onPick: (String) -> Unit, modifier: Modifier = Modifier) {
+    val titles = LocalStrings.current.emojiSections
     LazyVerticalGrid(GridCells.Adaptive(44.dp), modifier) {
-        for ((title, emojis) in sections) {
+        for ((title, emojis) in titles.zip(sections)) {
             item(span = { GridItemSpan(maxLineSpan) }) {
                 Text(
                     title,

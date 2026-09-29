@@ -2,6 +2,7 @@ package net.osipiuk.bucklog.ui.edit
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlin.math.abs
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -22,7 +23,6 @@ import net.osipiuk.bucklog.domain.MoneyFormat
 import net.osipiuk.bucklog.ui.AppGraph
 import net.osipiuk.bucklog.ui.Platform
 import net.osipiuk.bucklog.ui.userMessage
-import kotlin.math.abs
 
 data class EditForm(
     val original: Entry,
@@ -92,10 +92,11 @@ class EditViewModel(
     fun save(onDone: () -> Unit) {
         val f = _form.value ?: return
         val minor = MoneyFormat.parse(f.amount, f.currency)
+        val s = graph.strings
         val error = when {
-            minor == null || minor == 0L -> "Enter an amount, e.g. 35,30"
-            f.category.isBlank() -> "Choose a category"
-            f.who.isBlank() -> "Who paid?"
+            minor == null || minor == 0L -> s.errEnterAmount
+            f.category.isBlank() -> s.errChooseCategory
+            f.who.isBlank() -> s.errWhoPaid
             else -> null
         }
         if (error != null) {
@@ -125,7 +126,7 @@ class EditViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _form.value = f.copy(saving = false, error = e.userMessage())
+                _form.value = f.copy(saving = false, error = e.userMessage(graph.strings))
             }
         }
     }

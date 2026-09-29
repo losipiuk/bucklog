@@ -6,7 +6,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.safeDrawingPadding
@@ -17,18 +17,22 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import net.osipiuk.bucklog.ui.AppGraph
 import net.osipiuk.bucklog.ui.Platform
+import net.osipiuk.bucklog.ui.components.SyncProblemBanner
 
 @Composable
-fun AddExpenseScreen(vm: AddViewModel, platform: Platform, onOpenHistory: () -> Unit) {
+fun AddExpenseScreen(vm: AddViewModel, graph: AppGraph, platform: Platform, onOpenHistory: () -> Unit) {
     val state by vm.state.collectAsState()
+    val sync by graph.store.syncStatus.collectAsState(null)
     val ui = state ?: return
     var pickingCurrency by remember { mutableStateOf(false) }
 
 
     platform.BackHandler(enabled = ui.form.step == AddStep.DETAILS, onBack = vm::back)
 
-    Box(Modifier.fillMaxSize().safeDrawingPadding().imePadding()) {
+    Column(Modifier.fillMaxSize().safeDrawingPadding().imePadding()) {
+        if (ui.form.step == AddStep.AMOUNT) SyncProblemBanner(sync, graph, platform)
         AnimatedContent(
             targetState = ui.form.step,
             transitionSpec = {
@@ -67,3 +71,4 @@ fun AddExpenseScreen(vm: AddViewModel, platform: Platform, onOpenHistory: () -> 
         )
     }
 }
+

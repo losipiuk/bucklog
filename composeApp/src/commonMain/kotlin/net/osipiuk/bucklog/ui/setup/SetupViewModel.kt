@@ -104,15 +104,8 @@ class SetupViewModel(private val graph: AppGraph, private val platform: Platform
     }
 
     private suspend fun load(spreadsheetId: String) {
-        val sheet = graph.setup.readConfig(spreadsheetId)
-        graph.store.replaceCategories(sheet.categories)
-        graph.store.updateConfig(
-            spreadsheetId = spreadsheetId,
-            spreadsheetName = sheet.title,
-            mainCurrency = sheet.mainCurrency ?: platform.deviceCurrency,
-            timeZone = sheet.timeZone,
-        )
-        _state.update { it.copy(step = SetupStep.NAME, sheetName = sheet.title) }
+        graph.connectSheet(spreadsheetId, fallbackCurrency = platform.deviceCurrency)
+        _state.update { it.copy(step = SetupStep.NAME, sheetName = graph.store.config.first().spreadsheetName) }
     }
 
     private fun currentYear() = graph.clock.todayIn(TimeZone.currentSystemDefault()).year
@@ -126,7 +119,7 @@ class SetupViewModel(private val graph: AppGraph, private val platform: Platform
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _state.update { it.copy(error = e.userMessage()) }
+                _state.update { it.copy(error = e.userMessage(graph.strings)) }
             } finally {
                 _state.update { it.copy(busy = false) }
             }

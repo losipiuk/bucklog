@@ -31,10 +31,13 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import net.osipiuk.bucklog.ui.LocalStrings
+import net.osipiuk.bucklog.ui.Strings
 
 @Composable
 fun SetupScreen(vm: SetupViewModel) {
     val state by vm.state.collectAsState()
+    val s = LocalStrings.current
     LaunchedEffect(Unit) { vm.resume() }
     Column(
         Modifier.fillMaxSize().safeDrawingPadding().imePadding().padding(24.dp),
@@ -45,9 +48,9 @@ fun SetupScreen(vm: SetupViewModel) {
         AnimatedContent(state.step, label = "setup-step") { step ->
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 when (step) {
-                    SetupStep.WELCOME -> Welcome(state, vm)
-                    SetupStep.SHEET -> ChooseSheet(state, vm)
-                    SetupStep.NAME -> YourName(state, vm)
+                    SetupStep.WELCOME -> Welcome(state, vm, s)
+                    SetupStep.SHEET -> ChooseSheet(state, vm, s)
+                    SetupStep.NAME -> YourName(state, vm, s)
                 }
             }
         }
@@ -59,28 +62,22 @@ fun SetupScreen(vm: SetupViewModel) {
 }
 
 @Composable
-private fun ColumnScope.Welcome(state: SetupUiState, vm: SetupViewModel) {
+private fun ColumnScope.Welcome(state: SetupUiState, vm: SetupViewModel, s: Strings) {
     Text("Bucklog", style = MaterialTheme.typography.displaySmall)
-    Text(
-        "Log family expenses in seconds. Everything lands in a Google Sheet your family shares.",
-        style = MaterialTheme.typography.bodyLarge,
-    )
-    PrimaryButton("Sign in with Google", enabled = !state.busy, onClick = vm::signIn)
+    Text(s.tagline, style = MaterialTheme.typography.bodyLarge)
+    PrimaryButton(s.signInWithGoogle, enabled = !state.busy, onClick = vm::signIn)
 }
 
 @Composable
-private fun ColumnScope.ChooseSheet(state: SetupUiState, vm: SetupViewModel) {
-    Text("Family sheet", style = MaterialTheme.typography.headlineMedium)
-    Text("Signed in as ${state.account}", style = MaterialTheme.typography.bodyMedium)
-    PrimaryButton("Create a new family sheet", enabled = !state.busy, onClick = vm::createSheet)
-    Text(
-        "Already have one? Someone in your family shares it with you, then you choose it here.",
-        style = MaterialTheme.typography.bodyMedium,
-    )
+private fun ColumnScope.ChooseSheet(state: SetupUiState, vm: SetupViewModel, s: Strings) {
+    Text(s.familySheet, style = MaterialTheme.typography.headlineMedium)
+    Text(s.signedInAs(state.account.orEmpty()), style = MaterialTheme.typography.bodyMedium)
+    PrimaryButton(s.createFamilySheet, enabled = !state.busy, onClick = vm::createSheet)
+    Text(s.alreadyHaveOne, style = MaterialTheme.typography.bodyMedium)
     OutlinedTextField(
         value = state.link,
         onValueChange = vm::onLinkChange,
-        label = { Text("Sheet link (optional)") },
+        label = { Text(s.sheetLinkOptional) },
         singleLine = true,
         modifier = Modifier.fillMaxWidth(),
     )
@@ -88,28 +85,25 @@ private fun ColumnScope.ChooseSheet(state: SetupUiState, vm: SetupViewModel) {
         onClick = vm::pickSheet,
         enabled = !state.busy,
         modifier = Modifier.fillMaxWidth().height(56.dp),
-    ) { Text("Choose a shared sheet") }
-    TextButton(onClick = vm::useOtherAccount, enabled = !state.busy) { Text("Use another Google account") }
+    ) { Text(s.chooseSharedSheet) }
+    TextButton(onClick = vm::useOtherAccount, enabled = !state.busy) { Text(s.useAnotherAccount) }
 }
 
 @Composable
-private fun ColumnScope.YourName(state: SetupUiState, vm: SetupViewModel) {
-    Text("Your name", style = MaterialTheme.typography.headlineMedium)
-    Text(
-        "Connected to “${state.sheetName}”. Your name goes into the Who column of every expense you add.",
-        style = MaterialTheme.typography.bodyMedium,
-    )
+private fun ColumnScope.YourName(state: SetupUiState, vm: SetupViewModel, s: Strings) {
+    Text(s.yourName, style = MaterialTheme.typography.headlineMedium)
+    Text(s.connectedTo(state.sheetName.orEmpty()), style = MaterialTheme.typography.bodyMedium)
     OutlinedTextField(
         value = state.name,
         onValueChange = vm::onNameChange,
-        label = { Text("Name") },
+        label = { Text(s.name) },
         singleLine = true,
         keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words, imeAction = ImeAction.Done),
         keyboardActions = KeyboardActions(onDone = { vm.finish() }),
         modifier = Modifier.fillMaxWidth(),
     )
-    PrimaryButton("Start", enabled = !state.busy && state.name.isNotBlank(), onClick = vm::finish)
-    TextButton(onClick = vm::chooseOtherSheet, enabled = !state.busy) { Text("Choose a different sheet") }
+    PrimaryButton(s.start, enabled = !state.busy && state.name.isNotBlank(), onClick = vm::finish)
+    TextButton(onClick = vm::chooseOtherSheet, enabled = !state.busy) { Text(s.chooseDifferentSheet) }
 }
 
 @Composable
