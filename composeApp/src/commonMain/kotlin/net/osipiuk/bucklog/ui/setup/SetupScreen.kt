@@ -21,6 +21,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -34,6 +35,7 @@ import androidx.compose.ui.unit.sp
 @Composable
 fun SetupScreen(vm: SetupViewModel) {
     val state by vm.state.collectAsState()
+    LaunchedEffect(Unit) { vm.resume() }
     Column(
         Modifier.fillMaxSize().safeDrawingPadding().imePadding().padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),

@@ -16,12 +16,18 @@ interface Platform {
     /** Shows a short confirmation and closes the app (the Add flow's last step). */
     fun finishWithMessage(message: String)
 
+    /** Opens a web link (e.g. the family sheet in Google Sheets). */
+    fun openUrl(url: String)
+
     /** Handles the system back gesture while [enabled]. */
     @Composable
     fun BackHandler(enabled: Boolean, onBack: () -> Unit)
 
     val deviceCurrency: String
     val timeZoneId: String
+
+    /** Debug build: shows developer tools such as demo data. */
+    val isDebugBuild: Boolean
 
     /** ISO 639 language of the UI, e.g. "en". */
     val language: String

@@ -20,7 +20,7 @@ import androidx.compose.ui.Modifier
 import net.osipiuk.bucklog.ui.Platform
 
 @Composable
-fun AddExpenseScreen(vm: AddViewModel, platform: Platform, onOpenRecent: () -> Unit) {
+fun AddExpenseScreen(vm: AddViewModel, platform: Platform, onOpenHistory: () -> Unit) {
     val state by vm.state.collectAsState()
     val ui = state ?: return
     var pickingCurrency by remember { mutableStateOf(false) }
@@ -45,7 +45,7 @@ fun AddExpenseScreen(vm: AddViewModel, platform: Platform, onOpenRecent: () -> U
                     onToggleRefund = vm::toggleRefund,
                     onCurrencyClick = { pickingCurrency = true },
                     onNext = vm::next,
-                    onOpenRecent = onOpenRecent,
+                    onOpenHistory = onOpenHistory,
                 )
                 AddStep.DETAILS -> DetailsStep(
                     state = ui,

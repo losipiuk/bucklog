@@ -106,6 +106,10 @@ class AndroidPlatform(
 
     override fun requestSync() = SyncScheduler.syncNow(activity)
 
+    override fun openUrl(url: String) {
+        activity.startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url)))
+    }
+
     override fun finishWithMessage(message: String) {
         Toast.makeText(activity.applicationContext, message, Toast.LENGTH_SHORT).show()
         activity.finish()
@@ -119,6 +123,8 @@ class AndroidPlatform(
         get() = runCatching { java.util.Currency.getInstance(Locale.getDefault()).currencyCode }.getOrNull() ?: "EUR"
 
     override val timeZoneId: String get() = TimeZone.getDefault().id
+
+    override val isDebugBuild: Boolean get() = BuildConfig.DEBUG
 
     override val language: String get() = Locale.getDefault().language
 

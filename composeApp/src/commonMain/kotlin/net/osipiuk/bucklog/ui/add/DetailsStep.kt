@@ -68,13 +68,9 @@ fun DetailsStep(
     val keyboard = LocalSoftwareKeyboardController.current
     val haptics = LocalHapticFeedback.current
     var filter by remember { mutableStateOf("") }
-    // Keeps the cursor; when the text changes from outside (a suggestion was tapped), the cursor goes to the end.
-    var whatField by remember { mutableStateOf(TextFieldValue()) }
-    val whatValue = if (whatField.text == state.form.what) {
-        whatField
-    } else {
-        TextFieldValue(state.form.what, TextRange(state.form.what.length))
-    }
+    // The field owns its text (the view-model state arrives a frame later and would fight the cursor).
+    // A tapped suggestion replaces it with the cursor at the end.
+    var whatField by remember { mutableStateOf(TextFieldValue(state.form.what, TextRange(state.form.what.length))) }
     val categoriesByName = state.allCategories.associateBy { it.name }
     LaunchedEffect(Unit) {
         focus.requestFocus()
@@ -112,7 +108,7 @@ fun DetailsStep(
             )
         }
         OutlinedTextField(
-            value = whatValue,
+            value = whatField,
             onValueChange = {
                 whatField = it
                 onWhatChange(it.text)
@@ -133,7 +129,10 @@ fun DetailsStep(
             items(state.suggestions, key = { it.what }) { suggestion ->
                 val emoji = suggestion.category?.let(categoriesByName::get)?.emoji
                 SuggestionChip(
-                    onClick = { onSuggestion(suggestion) },
+                    onClick = {
+                        whatField = TextFieldValue(suggestion.what, TextRange(suggestion.what.length))
+                        onSuggestion(suggestion)
+                    },
                     label = {
                         Text(
                             listOfNotNull(suggestion.what, emoji).joinToString("  "),

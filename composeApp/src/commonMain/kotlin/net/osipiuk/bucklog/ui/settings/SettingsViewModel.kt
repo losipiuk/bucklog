@@ -1,0 +1,81 @@
+package net.osipiuk.bucklog.ui.settings
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+import net.osipiuk.bucklog.data.AppConfig
+import net.osipiuk.bucklog.data.SyncStatus
+import kotlinx.datetime.TimeZone
+import net.osipiuk.bucklog.domain.Category
+import net.osipiuk.bucklog.domain.DemoData
+import net.osipiuk.bucklog.domain.normalizeText
+import net.osipiuk.bucklog.ui.AppGraph
+import net.osipiuk.bucklog.ui.Platform
+
+data class SettingsUiState(val config: AppConfig, val categories: List<Category>, val sync: SyncStatus)
+
+class SettingsViewModel(private val graph: AppGraph, private val platform: Platform) : ViewModel() {
+    val syncing = MutableStateFlow(false)
+
+    val state: StateFlow<SettingsUiState?> = combine(graph.store.config, graph.store.categories, graph.store.syncStatus, ::SettingsUiState)
+        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+    fun saveName(name: String) {
+        val trimmed = name.trim()
+        if (trimmed.isNotEmpty()) viewModelScope.launch { graph.store.updateConfig(myName = trimmed) }
+    }
+
+    fun syncNow() {
+        if (syncing.value) return
+        syncing.value = true
+        viewModelScope.launch {
+            graph.sync.sync(force = true)
+            syncing.value = false
+        }
+    }
+
+    fun openSheet() {
+        state.value?.config?.spreadsheetId?.let { platform.openUrl("https://docs.google.com/spreadsheets/d/$it/edit") }
+    }
+
+    /** Validation message for saving [updated] over [oldName], or null if fine. */
+    fun validate(oldName: String?, updated: Category): String? {
+        val name = updated.name.trim()
+        if (name.isEmpty()) return "Enter a name"
+        val clash = state.value?.categories.orEmpty().any { it.name != oldName && normalizeText(it.name) == normalizeText(name) }
+        return if (clash) "“$name” already exists" else null
+    }
+
+    /** Saves a category edit ([oldName] set) or a new category. */
+    fun saveCategory(oldName: String?, updated: Category) {
+        val category = updated.copy(name = updated.name.trim().replace(Regex("\\s+"), " "), emoji = updated.emoji?.trim()?.ifEmpty { null })
+        viewModelScope.launch {
+            if (oldName == null) graph.store.addCategory(category) else graph.store.updateCategory(oldName, category)
+            platform.requestSync()
+        }
+    }
+
+    /** Debug builds: about six months of fake expenses, queued for upload like real ones. */
+    fun addDemoData() = viewModelScope.launch {
+        val config = graph.store.config.first()
+        val tz = config.timeZone?.let { runCatching { TimeZone.of(it) }.getOrNull() } ?: TimeZone.currentSystemDefault()
+        val categories = graph.store.categories.first().filter { !it.archived }.map { it.name }
+        val entries = DemoData.generate(categories, listOf(config.myName.orEmpty(), "Partner"), graph.clock.now(), tz)
+        graph.store.addEntries(entries)
+        platform.requestSync()
+    }
+
+    val isDebugBuild: Boolean get() = platform.isDebugBuild
+
+    fun switchSheet() = viewModelScope.launch { graph.store.forgetSheet() }
+
+    fun signOut() = viewModelScope.launch { graph.store.reset() }
+
+    suspend fun pendingChanges(): Long = graph.store.syncStatus.first().pendingChanges
+}

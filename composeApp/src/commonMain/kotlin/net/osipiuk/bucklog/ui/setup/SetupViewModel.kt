@@ -32,8 +32,8 @@ class SetupViewModel(private val graph: AppGraph, private val platform: Platform
     private val _state = MutableStateFlow(SetupUiState())
     val state: StateFlow<SetupUiState> = _state
 
-    init {
-        // Resume where a previous run stopped.
+    /** Picks up where setup stands in the stored config (after a restart, switching sheets or signing out). */
+    fun resume() {
         viewModelScope.launch {
             val config = graph.store.config.first()
             _state.update {

@@ -48,7 +48,7 @@ fun AmountStep(
     onToggleRefund: () -> Unit,
     onCurrencyClick: () -> Unit,
     onNext: () -> Unit,
-    onOpenRecent: () -> Unit,
+    onOpenHistory: () -> Unit,
 ) {
     val refund = state.form.refund
     val amountColor = when {
@@ -60,7 +60,7 @@ fun AmountStep(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("Bucklog", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
             Spacer(Modifier.weight(1f))
-            IconButton(onClick = onOpenRecent) { Icon(AppIcons.History, contentDescription = "Recent entries") }
+            IconButton(onClick = onOpenHistory) { Icon(AppIcons.History, contentDescription = "History") }
         }
         Spacer(Modifier.weight(1f))
         if (refund) {
