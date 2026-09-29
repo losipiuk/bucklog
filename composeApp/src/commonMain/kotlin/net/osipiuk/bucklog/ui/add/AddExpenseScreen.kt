@@ -1,5 +1,21 @@
 package net.osipiuk.bucklog.ui.add
 
+import net.osipiuk.bucklog.ui.AppIcons
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.Alignment
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Icon
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.background
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -63,6 +79,7 @@ fun AddExpenseScreen(vm: AddViewModel, graph: AppGraph, platform: Platform, onOp
             }
         }
     }
+    SuccessOverlay(visible = ui.form.done)
     if (pickingCurrency) {
         CurrencyPicker(
             recent = ui.recentCurrencies,
@@ -72,3 +89,19 @@ fun AddExpenseScreen(vm: AddViewModel, graph: AppGraph, platform: Platform, onOp
     }
 }
 
+/** A green check that pops in after Add, just before the app closes. */
+@Composable
+private fun SuccessOverlay(visible: Boolean) {
+    AnimatedVisibility(visible, enter = fadeIn(), modifier = Modifier.fillMaxSize()) {
+        Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)), contentAlignment = Alignment.Center) {
+            val scale = remember { Animatable(0.4f) }
+            LaunchedEffect(Unit) { scale.animateTo(1f, spring(dampingRatio = Spring.DampingRatioMediumBouncy)) }
+            Box(
+                Modifier.size(112.dp).scale(scale.value).clip(CircleShape).background(MaterialTheme.colorScheme.primary),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(AppIcons.Check, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(64.dp))
+            }
+        }
+    }
+}

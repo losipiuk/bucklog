@@ -1,5 +1,6 @@
 package net.osipiuk.bucklog.ui.add
 
+import kotlinx.coroutines.delay
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlin.time.Instant
@@ -29,6 +30,8 @@ import net.osipiuk.bucklog.ui.userMessage
 
 enum class AddStep { AMOUNT, DETAILS }
 
+private const val SUCCESS_ANIMATION_MS = 450L
+
 /** What the user has entered so far. */
 data class AddForm(
     val step: AddStep = AddStep.AMOUNT,
@@ -39,6 +42,8 @@ data class AddForm(
     /** Category chosen by tapping a chip; overrides the guess until What changes via a suggestion. */
     val pickedCategory: String? = null,
     val saving: Boolean = false,
+    /** Saved: the success animation plays, then the app closes. */
+    val done: Boolean = false,
     val error: String? = null,
 )
 
@@ -151,6 +156,8 @@ class AddViewModel(private val graph: AppGraph, private val platform: Platform) 
                 graph.store.updateConfig(lastCurrency = ui.currency)
                 platform.requestSync()
                 val emoji = ui.categories.firstOrNull { it.name == category }?.emoji?.let { "$it " }.orEmpty()
+                form.update { it.copy(done = true) }
+                delay(SUCCESS_ANIMATION_MS)
                 platform.finishWithMessage(
                     graph.strings.added(money.formatWithCode(ui.form.amount.minorUnits, ui.currency), "$emoji$category", ui.form.refund),
                 )
