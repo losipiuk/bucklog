@@ -16,6 +16,9 @@ object InviteLinks {
     const val APP_SCHEME = "net.osipiuk.bucklog"
     const val APP_HOST = "join"
 
+    /** Where anyone can download the latest APK (public GitHub releases). */
+    const val DOWNLOAD = "https://github.com/losipiuk/bucklog/releases/latest"
+
     fun page(invite: Invite): String = "$PAGE#${params(invite)}"
 
     fun app(invite: Invite): String = "$APP_SCHEME://$APP_HOST?${params(invite)}"

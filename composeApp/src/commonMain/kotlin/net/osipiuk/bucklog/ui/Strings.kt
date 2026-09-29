@@ -1,6 +1,7 @@
 package net.osipiuk.bucklog.ui
 
 import androidx.compose.runtime.staticCompositionLocalOf
+import net.osipiuk.bucklog.domain.InviteLinks
 
 /** All user-facing text. Plain Kotlin so it works the same on Android and iOS. */
 interface Strings {
@@ -186,13 +187,13 @@ object EnglishStrings : Strings {
     override val openSheet = "Open in Google Sheets"
     override val inviteMenu = "Invite"
     override fun inviteTitle(sheet: String) = "Invite to “$sheet”"
-    override val inviteHelp = "Enter their Google account. Bucklog shares the sheet with them, then you send them an invite link (WhatsApp, SMS, email…). They'll also need the app: send them the APK."
+    override val inviteHelp = "Enter their Google account. Bucklog shares the sheet with them, then you send them an invite (WhatsApp, SMS, email…) with a link to download the app and a link to join."
     override val theirEmail = "Their Google email"
     override val shareAndInvite = "Give access and send invite"
     override val justSendLink = "They already have access: just send the link"
     override val errEmail = "Enter a valid email address"
     override fun inviteMessage(sheet: String, link: String) =
-        "Join me in Bucklog to track expenses together in “$sheet”. Install the app (I'll send it to you), then open: $link"
+        "Join me in Bucklog to track expenses together in “$sheet”.\n\n1. Install the app: ${InviteLinks.DOWNLOAD}\n2. Then open: $link"
     override val sendInvite = "Send invite"
     override fun sharedWith(email: String) = "Shared with $email"
     override fun invitedBy(from: String, sheet: String) = if (from.isNotBlank()) "$from invited you to “$sheet”." else "You're invited to “$sheet”."
@@ -338,13 +339,13 @@ object PolishStrings : Strings {
     override val openSheet = "Otwórz w Arkuszach Google"
     override val inviteMenu = "Zaproś"
     override fun inviteTitle(sheet: String) = "Zaproś do „$sheet”"
-    override val inviteHelp = "Wpisz konto Google tej osoby. Bucklog udostępni jej arkusz, a Ty wyślesz link z zaproszeniem (WhatsApp, SMS, e-mail…). Potrzebna jest też aplikacja: prześlij plik APK."
+    override val inviteHelp = "Wpisz konto Google tej osoby. Bucklog udostępni jej arkusz, a Ty wyślesz zaproszenie (WhatsApp, SMS, e-mail…) z linkiem do pobrania aplikacji i linkiem do dołączenia."
     override val theirEmail = "Adres e-mail Google tej osoby"
     override val shareAndInvite = "Udostępnij i wyślij zaproszenie"
     override val justSendLink = "Ma już dostęp – wyślij tylko link"
     override val errEmail = "Wpisz poprawny adres e-mail"
     override fun inviteMessage(sheet: String, link: String) =
-        "Dołącz do wspólnych wydatków „$sheet” w Bucklog. Zainstaluj aplikację (prześlę Ci ją), a potem otwórz: $link"
+        "Dołącz do wspólnych wydatków „$sheet” w Bucklog.\n\n1. Zainstaluj aplikację: ${InviteLinks.DOWNLOAD}\n2. Potem otwórz: $link"
     override val sendInvite = "Wyślij zaproszenie"
     override fun sharedWith(email: String) = "Udostępniono: $email"
     override fun invitedBy(from: String, sheet: String) = if (from.isNotBlank()) "$from zaprasza Cię do „$sheet”." else "Zaproszenie do „$sheet”."

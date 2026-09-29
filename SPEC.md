@@ -270,7 +270,8 @@ The app **launches directly into Add Expense**, with no home screen in between.
 - The app keeps the invite until it's used. In setup, after sign-in, **Join "…"** opens the Picker with just
   that sheet (the one tap that grants access), then the name step. On a phone already connected to another
   sheet, the app asks before switching. On the same sheet, nothing happens.
-- The app itself (APK) is still sent separately.
+- The invite message also links to the latest APK on the public GitHub releases page
+  (`https://github.com/losipiuk/bucklog/releases/latest`), so an invite is all a new person needs.
 
 ### 5.6 Menu and Settings
 - A ☰ button at the top left of the main screen opens a drawer: History, Settings, Invite,
