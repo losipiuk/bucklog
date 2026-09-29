@@ -60,7 +60,7 @@ class SyncEngine(
             // Read the version before pulling: a change made after this point triggers another pull next time.
             val version = drive.getFile(spreadsheetId).version
             val outcome = if (!force && version != null && version == store.syncValue(SyncStatus.DRIVE_VERSION) &&
-                store.pendingEntryOps().isEmpty()
+                store.pendingEntryOps().isEmpty() && store.syncValue(SyncStatus.FORMATS_APPLIED) == spreadsheetId
             ) {
                 SyncOutcome.UpToDate
             } else {
@@ -192,12 +192,15 @@ class SyncEngine(
                 entries.sortedBy { it.timestamp }.map { SheetRows.toRow(it, tz) },
             )
         }
-        if (deletes.isNotEmpty()) {
-            val requests = deletes.flatMap { (tab, rowNumbers) ->
-                rowNumbers.sortedDescending().map { deleteRow(snapshot.sheetIds.getValue(tab), it) }
-            }
-            sheets.batchUpdate(spreadsheetId, requests)
-        }
+        // Appended rows are inserted rows, which don't inherit column formats: reapply them so the
+        // Date column shows dates, not serial numbers. Once per spreadsheet, fix every year tab.
+        val formatAll = store.syncValue(SyncStatus.FORMATS_APPLIED) != spreadsheetId
+        val formatTabs = (if (formatAll) snapshot.sheetIds.keys.filter(SheetLayout::isYearTab) else emptyList()) +
+            appends.keys.filter { it !in newTabs }
+        val requests = formatTabs.distinct().flatMap { SheetLayout.yearTabFormat(snapshot.sheetIds.getValue(it)) } +
+            deletes.flatMap { (tab, rowNumbers) -> rowNumbers.sortedDescending().map { deleteRow(snapshot.sheetIds.getValue(tab), it) } }
+        if (requests.isNotEmpty()) sheets.batchUpdate(spreadsheetId, requests)
+        if (formatAll) store.putSyncValue(SyncStatus.FORMATS_APPLIED, spreadsheetId)
         store.completeEntryOps(synced, maxSeq = ops.maxOfOrNull { it.seq } ?: 0)
         return latest.size
     }

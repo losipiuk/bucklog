@@ -299,6 +299,9 @@ Queued ops are collapsed per entry (the last one wins) and written in this order
 2. **Appends**: new entries, and entries whose date moved them to another year's tab, go into
    `values.append` with the range starting right below the tab's last row. An append
    never lands between existing rows, even if there are blank rows. Missing year tabs are created first.
+   Appended rows are *inserted* rows and don't inherit column formats, so the push then
+   reapplies the year-tab formats (date, amount, rate, grey ID) to the tabs it appended to
+   (and once to every year tab of a spreadsheet).
 3. **Deletes**: one `deleteDimension` batch, bottom-up per tab (so lower row numbers stay valid).
    A move to another year's tab is therefore copy-then-delete: if interrupted, it's
    duplicated, never lost.

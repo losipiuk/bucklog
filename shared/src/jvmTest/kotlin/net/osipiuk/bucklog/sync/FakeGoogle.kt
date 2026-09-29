@@ -40,6 +40,9 @@ class FakeGoogle(val spreadsheetId: String = "sheet", val timeZone: String = "Eu
     var version = 1L
         private set
     val requests = mutableListOf<HttpRequestData>()
+
+    /** Kinds of structural requests received, e.g. "repeatCell@100" (with sheetId) or "deleteDimension@100". */
+    val structuralRequests = mutableListOf<String>()
     private var nextSheetId = 100
 
     private val api = GoogleApi(
@@ -163,6 +166,9 @@ class FakeGoogle(val spreadsheetId: String = "sheet", val timeZone: String = "Eu
     }
 
     private fun structural(request: JsonObject): JsonElement {
+        val kind = request.keys.single()
+        val sheetId = (request[kind] as? JsonObject)?.let { it["range"] as? JsonObject }?.get("sheetId")?.jsonPrimitive?.content
+        structuralRequests += if (sheetId != null) "$kind@$sheetId" else kind
         request["addSheet"]?.let { add ->
             val title = add.jsonObject["properties"]!!.jsonObject["title"]!!.jsonPrimitive.content
             val tab = Tab(nextSheetId++)

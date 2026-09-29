@@ -17,5 +17,8 @@ data class SyncStatus(
         const val LAST_SUCCESS = "sync_last_success"
         const val ERROR = "sync_error"
         const val DRIVE_VERSION = "sync_drive_version"
+
+        /** Set once year-tab column formats were (re)applied to every tab of this spreadsheet. */
+        const val FORMATS_APPLIED = "sync_formats_applied"
     }
 }

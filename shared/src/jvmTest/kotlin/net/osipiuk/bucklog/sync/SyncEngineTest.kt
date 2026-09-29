@@ -173,6 +173,31 @@ class SyncEngineTest {
     }
 
     @Test
+    fun reappliesColumnFormatsAfterAppending() = runTest {
+        google.addTab("2025", header)
+        val y2025 = google.tabs.getValue("2025").sheetId
+        val y2026 = google.tabs.getValue("2026").sheetId
+        store.addEntry(entry("aaaa0001"))
+
+        engine.sync()
+
+        // First sync formats every year tab, including ones it didn't write to.
+        assertTrue("repeatCell@$y2025" in google.structuralRequests)
+        assertTrue("repeatCell@$y2026" in google.structuralRequests)
+
+        google.structuralRequests.clear()
+        store.addEntry(entry("aaaa0002"))
+        engine.sync()
+        assertTrue("repeatCell@$y2026" in google.structuralRequests)
+        assertTrue("repeatCell@$y2025" !in google.structuralRequests, "later syncs only format tabs they appended to")
+
+        google.structuralRequests.clear()
+        google.handEdit { setCell("2026", 2, 2, "Edited") }
+        engine.sync()
+        assertTrue(google.structuralRequests.none { it.startsWith("repeatCell") }, "pull-only syncs don't write formats")
+    }
+
+    @Test
     fun createsNewYearTab() = runTest {
         store.addEntry(entry("aaaa0001", at = "2027-01-01T10:00:00Z"))
 
