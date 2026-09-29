@@ -32,9 +32,21 @@ class SettingsViewModel(private val graph: AppGraph, private val platform: Platf
     /** "system", "en" or "pl". */
     fun setLanguage(code: String) = viewModelScope.launch { graph.store.putValue(LANGUAGE_KEY, code) }
 
-    fun saveName(name: String) {
+    /** How many expenses carry my current name (offered for renaming along with it). */
+    suspend fun myPastEntries(): Long = graph.store.config.first().myName?.let { graph.store.countEntriesBy(it) } ?: 0
+
+    /** Saves my new name; with [renamePast], my past expenses (and their sheet rows) follow. */
+    fun saveName(name: String, renamePast: Boolean) {
         val trimmed = name.trim()
-        if (trimmed.isNotEmpty()) viewModelScope.launch { graph.store.updateConfig(myName = trimmed) }
+        if (trimmed.isEmpty()) return
+        viewModelScope.launch {
+            val old = graph.store.config.first().myName
+            graph.store.updateConfig(myName = trimmed)
+            if (renamePast && old != null && old != trimmed) {
+                graph.store.renamePerson(old, trimmed)
+                platform.requestSync()
+            }
+        }
     }
 
     fun syncNow() {

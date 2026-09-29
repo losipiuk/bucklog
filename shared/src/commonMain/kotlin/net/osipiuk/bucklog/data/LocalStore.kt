@@ -65,6 +65,18 @@ class LocalStore(
     /** Names in the Who column, most recently active first. */
     val people: Flow<List<String>> = q.knownPeople().asFlow().mapToList(io)
 
+    /** How many entries name [who] in the Who column. */
+    suspend fun countEntriesBy(who: String): Long = withContext(io) { q.entryIdsByWho(who).executeAsList().size.toLong() }
+
+    /** Renames [from] to [to] in the Who column of every entry, queued for upload. */
+    suspend fun renamePerson(from: String, to: String) = withContext(io) {
+        q.transaction {
+            val ids = q.entryIdsByWho(from).executeAsList()
+            q.renameWho(to, from)
+            ids.forEach { q.enqueue(OP_UPSERT, it) }
+        }
+    }
+
     /** Saves an edit and queues it for upload. The exchange rate is kept only if [Entry.rate] still holds it. */
     suspend fun updateEntry(e: Entry) = withContext(io) {
         q.transaction {

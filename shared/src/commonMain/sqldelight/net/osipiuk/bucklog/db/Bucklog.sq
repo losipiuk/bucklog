@@ -68,6 +68,12 @@ SELECT id FROM entry WHERE category = ?;
 recategorize:
 UPDATE entry SET category = ?, status = 'PENDING' WHERE category = ?;
 
+entryIdsByWho:
+SELECT id FROM entry WHERE who = ? AND status != 'INVALID';
+
+renameWho:
+UPDATE entry SET who = ?, status = 'PENDING' WHERE who = ? AND status != 'INVALID';
+
 knownPeople:
 SELECT who FROM entry WHERE who != '' GROUP BY who ORDER BY max(ts) DESC;
 

@@ -72,6 +72,9 @@ interface Strings {
     val you: String
     val yourName: String
     val nameHelp: String
+    fun renamePastQuestion(n: Long, from: String, to: String): String
+    val renameAll: String
+    val onlyNew: String
     fun googleAccount(email: String): String
     val familySheet: String
     fun sheetInfo(name: String, currency: String): String
@@ -204,7 +207,11 @@ object EnglishStrings : Strings {
 
     override val you = "You"
     override val yourName = "Your name"
-    override val nameHelp = "Used for the Who column of new expenses. Existing ones keep their name (edit them in History)."
+    override val nameHelp = "Used for the Who column of new expenses. When you change it, you can rename your past expenses too."
+    override fun renamePastQuestion(n: Long, from: String, to: String) =
+        "Also rename ${if (n == 1L) "1 past expense" else "$n past expenses"} from “$from” to “$to”? This updates the sheet too."
+    override val renameAll = "Rename all"
+    override val onlyNew = "Only new ones"
     override fun googleAccount(email: String) = "Google account: $email"
     override val familySheet = "Family sheet"
     override fun sheetInfo(name: String, currency: String) = "$name · main currency $currency"
@@ -343,7 +350,11 @@ object PolishStrings : Strings {
 
     override val you = "Ty"
     override val yourName = "Twoje imię"
-    override val nameHelp = "Trafia do kolumny Kto nowych wydatków. Istniejące zachowują swoje (zmienisz je w Historii)."
+    override val nameHelp = "Trafia do kolumny Kto nowych wydatków. Przy zmianie możesz zaktualizować też wcześniejsze."
+    override fun renamePastQuestion(n: Long, from: String, to: String) =
+        "Zmienić też „$from” na „$to” w $n ${plural(n, "wcześniejszym wydatku", "wcześniejszych wydatkach", "wcześniejszych wydatkach")}? Arkusz zostanie zaktualizowany."
+    override val renameAll = "Zmień wszystkie"
+    override val onlyNew = "Tylko nowe"
     override fun googleAccount(email: String) = "Konto Google: $email"
     override val familySheet = "Arkusz rodzinny"
     override fun sheetInfo(name: String, currency: String) = "$name · waluta główna $currency"

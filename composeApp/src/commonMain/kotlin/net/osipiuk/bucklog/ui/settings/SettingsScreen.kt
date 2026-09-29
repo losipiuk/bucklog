@@ -67,6 +67,8 @@ fun SettingsScreen(vm: SettingsViewModel, graph: AppGraph, platform: Platform, o
     var name by remember(ui.config.myName) { mutableStateOf(ui.config.myName.orEmpty()) }
     var editing by remember { mutableStateOf<Pair<String?, Category>?>(null) }
     var confirm by remember { mutableStateOf<Confirm?>(null) }
+    // Number of my past expenses, while asking whether to rename them too.
+    var renamePast by remember { mutableStateOf<Long?>(null) }
 
     Column(Modifier.fillMaxSize()) {
         Row(Modifier.padding(4.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -88,7 +90,15 @@ fun SettingsScreen(vm: SettingsViewModel, graph: AppGraph, platform: Platform, o
                     keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words, imeAction = ImeAction.Done),
                     modifier = Modifier.weight(1f),
                 )
-                TextButton(onClick = { vm.saveName(name) }, enabled = name.isNotBlank() && name.trim() != ui.config.myName) { Text(s.save) }
+                TextButton(
+                    onClick = {
+                        scope.launch {
+                            val past = vm.myPastEntries()
+                            if (past > 0) renamePast = past else vm.saveName(name, renamePast = false)
+                        }
+                    },
+                    enabled = name.isNotBlank() && name.trim() != ui.config.myName,
+                ) { Text(s.save) }
             }
             Text(
                 s.nameHelp,
@@ -157,6 +167,14 @@ fun SettingsScreen(vm: SettingsViewModel, graph: AppGraph, platform: Platform, o
             validate = { vm.validate(oldName, it) },
             onSave = { vm.saveCategory(oldName, it); editing = null },
             onDismiss = { editing = null },
+        )
+    }
+    renamePast?.let { n ->
+        AlertDialog(
+            onDismissRequest = { renamePast = null },
+            text = { Text(s.renamePastQuestion(n, ui.config.myName.orEmpty(), name.trim())) },
+            confirmButton = { TextButton(onClick = { renamePast = null; vm.saveName(name, renamePast = true) }) { Text(s.renameAll) } },
+            dismissButton = { TextButton(onClick = { renamePast = null; vm.saveName(name, renamePast = false) }) { Text(s.onlyNew) } },
         )
     }
     confirm?.let { c ->

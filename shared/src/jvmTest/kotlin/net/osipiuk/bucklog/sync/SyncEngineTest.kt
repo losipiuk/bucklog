@@ -330,6 +330,21 @@ class SyncEngineTest {
     }
 
     @Test
+    fun renamingAPersonRewritesTheirRowsOnly() = runTest {
+        store.addEntry(entry("aaaa0001"))
+        google.handEdit { appendRow("2026", serial, "Anna", "Bread", "Food", 5, "PLN", "", "bbbb0001") }
+        engine.sync()
+
+        assertEquals(1L, store.countEntriesBy("Łukasz"))
+        store.renamePerson("Łukasz", "Lukasz")
+        engine.sync()
+
+        val who = google.rows("2026").drop(1).associate { it[7] to it[1] }
+        assertEquals<Map<Any?, Any?>>(mapOf("aaaa0001" to "Lukasz", "bbbb0001" to "Anna"), who)
+        assertEquals(0L, store.countEntriesBy("Łukasz"))
+    }
+
+    @Test
     fun archivingCategoryUpdatesItsRow() = runTest {
         engine.sync()
 

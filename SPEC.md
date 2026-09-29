@@ -277,7 +277,8 @@ The app **launches directly into Add Expense**, with no home screen in between.
   Open in Google Sheets, and **Sign out** at the bottom. Less frequent and future flows go here, keeping
   the keypad screen clean (History also stays one tap away on the right). Only the button opens the
   drawer, not an edge swipe.
-- Settings: your name (used for new entries), Google account, language, the sheet with **Open in Google
+- Settings: your name (used for new entries; when it changes, the app offers to rename your past
+  expenses too, including their rows in the sheet), Google account, language, the sheet with **Open in Google
   Sheets**, sync status and **Sync now**, categories.
 - **Use another sheet** (Settings) and **Sign out** (menu) clear the local copy (warning if changes
   haven't synced yet), then return to setup.
