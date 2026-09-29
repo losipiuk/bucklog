@@ -90,7 +90,7 @@ fun HistoryScreen(
     var query by rememberSaveable { mutableStateOf("") }
     val s = LocalStrings.current
     val snackbar = remember { SnackbarHostState() }
-    val money = remember { MoneyFormat(decimalSeparator = platform.decimalSeparator) }
+    val money = remember { MoneyFormat() }
     val tz = remember { TimeZone.currentSystemDefault() }
     val today = remember { Clock.System.todayIn(tz) }
 

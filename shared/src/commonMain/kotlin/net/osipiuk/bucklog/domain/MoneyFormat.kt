@@ -2,7 +2,7 @@ package net.osipiuk.bucklog.domain
 
 import kotlin.math.absoluteValue
 
-/** Formats minor units with a fixed number of decimals, e.g. 353000 → "3 530.00". */
+/** Formats minor units with a fixed number of decimals, e.g. 353000 → "3 530.00". The app always uses a dot. */
 class MoneyFormat(
     private val decimalSeparator: Char = '.',
     private val groupingSeparator: Char = ' ',

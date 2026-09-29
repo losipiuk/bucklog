@@ -3,7 +3,6 @@ package net.osipiuk.bucklog
 import android.accounts.AccountManager
 import android.app.Activity
 import android.content.Intent
-import android.icu.text.DecimalFormatSymbols
 import android.os.Handler
 import android.os.Looper
 import android.widget.Toast
@@ -133,6 +132,4 @@ class AndroidPlatform(
     override val language: String get() = Locale.getDefault().language
 
     override val country: String get() = Locale.getDefault().country
-
-    override val decimalSeparator: Char get() = DecimalFormatSymbols.getInstance().decimalSeparator
 }

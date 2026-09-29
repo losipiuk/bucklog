@@ -37,7 +37,6 @@ interface Platform {
 
     /** ISO 3166 country of the device's region, e.g. "PL"; empty when unknown. */
     val country: String
-    val decimalSeparator: Char
 
     /** Language for a new sheet's default categories: the region wins, so English UI in Poland gets Polish names. */
     val contentLanguage: String get() = if (country == "PL") "pl" else language

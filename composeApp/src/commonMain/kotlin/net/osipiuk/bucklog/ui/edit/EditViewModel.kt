@@ -51,7 +51,7 @@ class EditViewModel(
     private val platform: Platform,
     private val entryId: String,
 ) : ViewModel() {
-    val money = MoneyFormat(decimalSeparator = platform.decimalSeparator)
+    val money = MoneyFormat()
     private val _form = MutableStateFlow<EditForm?>(null)
 
     /** Collected directly by text fields: it updates synchronously as the user types. */

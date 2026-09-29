@@ -65,7 +65,7 @@ data class AddUiState(
 
 /** The main flow (SPEC §5.2): amount → what + category → Add closes the app. */
 class AddViewModel(private val graph: AppGraph, private val platform: Platform) : ViewModel() {
-    private val money = MoneyFormat(decimalSeparator = platform.decimalSeparator)
+    private val money = MoneyFormat()
     private val form = MutableStateFlow(AddForm())
 
     private val engine = combine(graph.store.history, graph.store.config) { history, config ->
