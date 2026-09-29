@@ -19,6 +19,9 @@ interface Platform {
     /** Shows a short confirmation and closes the app (the Add flow's last step). */
     fun finishWithMessage(message: String)
 
+    /** Opens the system share sheet with [text] (WhatsApp, SMS, email…). */
+    fun shareText(text: String, title: String)
+
     /** Opens a web link (e.g. the family sheet in Google Sheets). */
     fun openUrl(url: String)
 

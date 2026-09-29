@@ -30,6 +30,13 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="net.osipiuk.bucklog" android:host="picked" />
             </intent-filter>
+            <!-- Invite links (the join page's button): net.osipiuk.bucklog://join?sheet=…&name=…&from=… -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="net.osipiuk.bucklog" android:host="join" />
+            </intent-filter>
         </activity>
     </application>
 </manifest>

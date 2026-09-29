@@ -40,6 +40,20 @@ interface Strings {
     val settings: String
     val menu: String
     val openSheet: String
+    val inviteMenu: String
+    fun inviteTitle(sheet: String): String
+    val inviteHelp: String
+    val theirEmail: String
+    val shareAndInvite: String
+    val justSendLink: String
+    val errEmail: String
+    fun inviteMessage(sheet: String, link: String): String
+    val sendInvite: String
+    fun sharedWith(email: String): String
+    fun invitedBy(from: String, sheet: String): String
+    fun joinSheet(sheet: String): String
+    fun switchToInvitedQuestion(sheet: String): String
+    fun switchToInvitedText(current: String): String
     val search: String
     val clearSearch: String
     val day: String
@@ -158,6 +172,22 @@ object EnglishStrings : Strings {
     override val settings = "Settings"
     override val menu = "Menu"
     override val openSheet = "Open in Google Sheets"
+    override val inviteMenu = "Invite"
+    override fun inviteTitle(sheet: String) = "Invite to “$sheet”"
+    override val inviteHelp = "Enter their Google account. Bucklog shares the sheet with them, then you send them an invite link (WhatsApp, SMS, email…). They'll also need the app: send them the APK."
+    override val theirEmail = "Their Google email"
+    override val shareAndInvite = "Give access and send invite"
+    override val justSendLink = "They already have access: just send the link"
+    override val errEmail = "Enter a valid email address"
+    override fun inviteMessage(sheet: String, link: String) =
+        "Join me in Bucklog to track expenses together in “$sheet”. Install the app (I'll send it to you), then open: $link"
+    override val sendInvite = "Send invite"
+    override fun sharedWith(email: String) = "Shared with $email"
+    override fun invitedBy(from: String, sheet: String) = if (from.isNotBlank()) "$from invited you to “$sheet”." else "You're invited to “$sheet”."
+    override fun joinSheet(sheet: String) = "Join “$sheet”"
+    override fun switchToInvitedQuestion(sheet: String) = "Join “$sheet”?"
+    override fun switchToInvitedText(current: String) =
+        "This phone is connected to “$current”. Switching clears its local copy; the sheet itself isn't touched."
     override val search = "Search"
     override val clearSearch = "Clear search"
     override val day = "Day"
@@ -281,6 +311,22 @@ object PolishStrings : Strings {
     override val settings = "Ustawienia"
     override val menu = "Menu"
     override val openSheet = "Otwórz w Arkuszach Google"
+    override val inviteMenu = "Zaproś"
+    override fun inviteTitle(sheet: String) = "Zaproś do „$sheet”"
+    override val inviteHelp = "Wpisz konto Google tej osoby. Bucklog udostępni jej arkusz, a Ty wyślesz link z zaproszeniem (WhatsApp, SMS, e-mail…). Potrzebna jest też aplikacja: prześlij plik APK."
+    override val theirEmail = "Adres e-mail Google tej osoby"
+    override val shareAndInvite = "Udostępnij i wyślij zaproszenie"
+    override val justSendLink = "Ma już dostęp – wyślij tylko link"
+    override val errEmail = "Wpisz poprawny adres e-mail"
+    override fun inviteMessage(sheet: String, link: String) =
+        "Dołącz do wspólnych wydatków „$sheet” w Bucklog. Zainstaluj aplikację (prześlę Ci ją), a potem otwórz: $link"
+    override val sendInvite = "Wyślij zaproszenie"
+    override fun sharedWith(email: String) = "Udostępniono: $email"
+    override fun invitedBy(from: String, sheet: String) = if (from.isNotBlank()) "$from zaprasza Cię do „$sheet”." else "Zaproszenie do „$sheet”."
+    override fun joinSheet(sheet: String) = "Dołącz do „$sheet”"
+    override fun switchToInvitedQuestion(sheet: String) = "Dołączyć do „$sheet”?"
+    override fun switchToInvitedText(current: String) =
+        "Ten telefon jest połączony z „$current”. Zmiana wyczyści dane na telefonie; sam arkusz pozostaje bez zmian."
     override val search = "Szukaj"
     override val clearSearch = "Wyczyść"
     override val day = "Dzień"

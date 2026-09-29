@@ -10,6 +10,7 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.todayIn
 import net.osipiuk.bucklog.domain.DefaultCategories
+import net.osipiuk.bucklog.domain.Invite
 import net.osipiuk.bucklog.google.parseSpreadsheetId
 import net.osipiuk.bucklog.ui.AppGraph
 import net.osipiuk.bucklog.ui.Platform
@@ -25,12 +26,18 @@ data class SetupUiState(
     val sheetName: String? = null,
     val link: String = "",
     val name: String = "",
+    /** Set when this phone was opened from an invite link: setup offers to join that sheet. */
+    val invite: Invite? = null,
 )
 
 /** First-run flow (SPEC §5.1): Google account → family sheet → your name. */
 class SetupViewModel(private val graph: AppGraph, private val platform: Platform) : ViewModel() {
     private val _state = MutableStateFlow(SetupUiState())
     val state: StateFlow<SetupUiState> = _state
+
+    init {
+        viewModelScope.launch { graph.pendingInvite.collect { invite -> _state.update { it.copy(invite = invite) } } }
+    }
 
     /** Picks up where setup stands in the stored config (after a restart, switching sheets or signing out). */
     fun resume() {
@@ -89,6 +96,20 @@ class SetupViewModel(private val graph: AppGraph, private val platform: Platform
             year = currentYear(),
         )
         load(picked.id)
+    }
+
+    /** Picks the invited sheet (the Picker shows just that file) and connects to it. */
+    fun joinInvite() = work {
+        val invite = state.value.invite ?: return@work
+        val picked = platform.pickSheet(invite.spreadsheetId) ?: return@work
+        graph.setup.ensureLayout(
+            picked.id,
+            mainCurrency = platform.deviceCurrency,
+            categories = DefaultCategories.forLanguage(platform.contentLanguage),
+            year = currentYear(),
+        )
+        load(picked.id)
+        graph.clearInvite()
     }
 
     fun useOtherAccount() = _state.update { it.copy(step = SetupStep.WELCOME, error = null) }

@@ -10,6 +10,9 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
+import net.osipiuk.bucklog.domain.InviteLinks
 import net.osipiuk.bucklog.ui.BucklogApp
 
 class MainActivity : ComponentActivity() {
@@ -20,7 +23,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         val app = application as BucklogApplication
         platform = AndroidPlatform(this, app.authorizer)
-        platform.onIntent(intent)
+        handleIntent(intent)
         // Pick up family and hand-made changes whenever the app opens.
         SyncScheduler.syncNow(this)
         setContent {
@@ -36,7 +39,16 @@ class MainActivity : ComponentActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+        handleIntent(intent)
+    }
+
+    /** Picker results and invite links both arrive as net.osipiuk.bucklog:// intents. */
+    private fun handleIntent(intent: Intent?) {
         platform.onIntent(intent)
+        val uri = intent?.data ?: return
+        if (uri.scheme != InviteLinks.APP_SCHEME || uri.host != InviteLinks.APP_HOST) return
+        val invite = InviteLinks.parse(uri.toString()) ?: return
+        lifecycleScope.launch { (application as BucklogApplication).graph.receiveInvite(invite) }
     }
 
     override fun onResume() {

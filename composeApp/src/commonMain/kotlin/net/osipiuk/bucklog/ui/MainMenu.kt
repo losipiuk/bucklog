@@ -16,7 +16,7 @@ import androidx.compose.ui.unit.dp
 
 /** The ☰ menu on the main screen: less frequent destinations, and room for more flows later. */
 @Composable
-fun MainMenu(graph: AppGraph, onHistory: () -> Unit, onSettings: () -> Unit, onOpenSheet: () -> Unit) {
+fun MainMenu(graph: AppGraph, onHistory: () -> Unit, onSettings: () -> Unit, onInvite: () -> Unit, onOpenSheet: () -> Unit) {
     val s = LocalStrings.current
     val config by graph.store.config.collectAsState(null)
     ModalDrawerSheet {
@@ -40,6 +40,10 @@ fun MainMenu(graph: AppGraph, onHistory: () -> Unit, onSettings: () -> Unit, onO
             icon = { Icon(AppIcons.Settings, contentDescription = null) },
         )
         HorizontalDivider(Modifier.padding(horizontal = 28.dp, vertical = 8.dp))
+        NavigationDrawerItem(
+            label = { Text(s.inviteMenu) }, selected = false, onClick = onInvite, modifier = item,
+            icon = { Icon(AppIcons.PersonAdd, contentDescription = null) },
+        )
         NavigationDrawerItem(
             label = { Text(s.openSheet) }, selected = false, onClick = onOpenSheet, modifier = item,
             icon = { Icon(AppIcons.OpenInNew, contentDescription = null) },

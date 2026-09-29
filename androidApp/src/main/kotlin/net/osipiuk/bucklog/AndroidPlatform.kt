@@ -109,6 +109,11 @@ class AndroidPlatform(
 
     override fun requestSync() = SyncScheduler.syncNow(activity)
 
+    override fun shareText(text: String, title: String) {
+        val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text)
+        activity.startActivity(Intent.createChooser(send, title))
+    }
+
     override fun openUrl(url: String) {
         activity.startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url)))
     }

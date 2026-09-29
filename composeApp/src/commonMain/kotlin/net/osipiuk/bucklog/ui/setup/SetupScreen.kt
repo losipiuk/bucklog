@@ -65,6 +65,7 @@ fun SetupScreen(vm: SetupViewModel) {
 private fun ColumnScope.Welcome(state: SetupUiState, vm: SetupViewModel, s: Strings) {
     Text("Bucklog", style = MaterialTheme.typography.displaySmall)
     Text(s.tagline, style = MaterialTheme.typography.bodyLarge)
+    state.invite?.let { Text(s.invitedBy(it.from, it.sheetName), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary) }
     PrimaryButton(s.signInWithGoogle, enabled = !state.busy, onClick = vm::signIn)
 }
 
@@ -72,7 +73,11 @@ private fun ColumnScope.Welcome(state: SetupUiState, vm: SetupViewModel, s: Stri
 private fun ColumnScope.ChooseSheet(state: SetupUiState, vm: SetupViewModel, s: Strings) {
     Text(s.familySheet, style = MaterialTheme.typography.headlineMedium)
     Text(s.signedInAs(state.account.orEmpty()), style = MaterialTheme.typography.bodyMedium)
-    PrimaryButton(s.createFamilySheet, enabled = !state.busy, onClick = vm::createSheet)
+    state.invite?.let { invite ->
+        Text(s.invitedBy(invite.from, invite.sheetName), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+        PrimaryButton(s.joinSheet(invite.sheetName), enabled = !state.busy, onClick = vm::joinInvite)
+    }
+    if (state.invite == null) PrimaryButton(s.createFamilySheet, enabled = !state.busy, onClick = vm::createSheet)
     Text(s.alreadyHaveOne, style = MaterialTheme.typography.bodyMedium)
     OutlinedTextField(
         value = state.link,
