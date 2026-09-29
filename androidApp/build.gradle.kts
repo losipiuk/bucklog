@@ -19,10 +19,29 @@ android {
         applicationId = "net.osipiuk.bucklog"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.compileSdk.get().toInt()
-        versionCode = 3
-        versionName = "0.2.0-m2"
+        versionCode = 4
+        versionName = "0.4.0"
         buildConfigField("String", "PICKER_API_KEY", localProp("bucklog.pickerApiKey"))
         buildConfigField("String", "CLOUD_PROJECT_NUMBER", localProp("bucklog.cloudProjectNumber"))
+    }
+
+    // Release key lives outside the repo (see README "Release"); without it, release builds are unsigned.
+    val releaseStore = localProps.getProperty("bucklog.release.storeFile")?.let(::file)?.takeIf { it.exists() }
+    signingConfigs {
+        if (releaseStore != null) {
+            create("release") {
+                storeFile = releaseStore
+                storePassword = localProps.getProperty("bucklog.release.storePassword")
+                keyAlias = localProps.getProperty("bucklog.release.keyAlias")
+                keyPassword = localProps.getProperty("bucklog.release.keyPassword")
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            signingConfig = signingConfigs.findByName("release")
+        }
     }
 
     buildFeatures {

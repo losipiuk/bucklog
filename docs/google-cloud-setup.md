@@ -37,7 +37,9 @@ Do all of this while signed in to **console.cloud.google.com** as `lukasz@osipiu
    - Package name: `net.osipiuk.bucklog`
    - SHA-1 (debug key on this Mac, `~/.android/debug.keystore`):
      `11:D4:A9:C1:68:97:48:F9:4D:50:A8:83:87:E7:03:8C:69:71:07:E1`
-   - (Later, for the release APK: create a second Android client with the release key's SHA-1.)
+   - **Release APK**: create a second Android OAuth client, same package name, with the release
+     key's SHA-1: `64:F9:21:49:0B:1E:96:AF:55:6D:C2:1C:0C:E0:27:12:53:D6:F9:36`
+     (key `~/.bucklog/bucklog-release.jks`, see README → Release).
 2. **OAuth client ID → Web application** (the Picker token must belong to this project;
    GIS on Android also expects a web client to exist). Name `bucklog-web`, no origins needed for now.
 3. **API key** → then edit it:
