@@ -11,16 +11,21 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
+import java.util.concurrent.TimeUnit
 import net.osipiuk.bucklog.google.AuthRequiredException
 import net.osipiuk.bucklog.google.GoogleApiException
 import net.osipiuk.bucklog.sync.SyncOutcome
-import java.util.concurrent.TimeUnit
 
 /** Runs one sync (SPEC §6.2). Transient failures are retried with backoff; the error is shown in the app. */
 class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result {
-        val outcome = (applicationContext as BucklogApplication).graph.sync.sync()
-        if (outcome !is SyncOutcome.Failed) return Result.success()
+        val graph = (applicationContext as BucklogApplication).graph
+        val outcome = graph.sync.sync()
+        if (outcome !is SyncOutcome.Failed) {
+            // Weekly copy of the sheet, if enabled; a failure is recorded and retried next time.
+            runCatching { graph.backups.backUpIfDue() }
+            return Result.success()
+        }
         val error = outcome.error
         val permanent = error is AuthRequiredException ||
             (error is GoogleApiException && error.httpStatus in 400..499 && error.httpStatus != 429)

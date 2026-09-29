@@ -82,6 +82,15 @@ interface Strings {
     val syncNow: String
     fun openInSheets(name: String): String
     val useAnotherSheet: String
+    val backups: String
+    val automaticBackups: String
+    val backupsHelp: String
+    fun lastBackup(time: String): String
+    val noBackupYet: String
+    val backUpNow: String
+    val backingUp: String
+    val openBackups: String
+    fun backupFailed(message: String): String
     val categories: String
     val categoriesHelp: String
     val archivedLabel: String
@@ -219,6 +228,15 @@ object EnglishStrings : Strings {
     override val syncNow = "Sync now"
     override fun openInSheets(name: String) = "Open “$name” in Google Sheets ↗"
     override val useAnotherSheet = "Use another sheet…"
+    override val backups = "Backups"
+    override val automaticBackups = "Weekly backup to my Drive"
+    override val backupsHelp = "Copies the whole sheet to a “Bucklog backups” folder in your Google Drive when it changed, keeping the last 8."
+    override fun lastBackup(time: String) = "Last backup $time"
+    override val noBackupYet = "No backup yet"
+    override val backUpNow = "Back up now"
+    override val backingUp = "Backing up…"
+    override val openBackups = "Open backups folder ↗"
+    override fun backupFailed(message: String) = "Backup failed: $message"
     override val categories = "Categories"
     override val categoriesHelp = "Renaming updates every expense in that category. Archived categories are hidden when adding."
     override val archivedLabel = "archived"
@@ -362,6 +380,15 @@ object PolishStrings : Strings {
     override val syncNow = "Synchronizuj"
     override fun openInSheets(name: String) = "Otwórz „$name” w Arkuszach Google ↗"
     override val useAnotherSheet = "Użyj innego arkusza…"
+    override val backups = "Kopie zapasowe"
+    override val automaticBackups = "Cotygodniowa kopia na moim Dysku"
+    override val backupsHelp = "Kopiuje cały arkusz do folderu „Bucklog backups” na Twoim Dysku Google, gdy się zmienił; zostaje 8 ostatnich."
+    override fun lastBackup(time: String) = "Ostatnia kopia $time"
+    override val noBackupYet = "Brak kopii"
+    override val backUpNow = "Zrób kopię teraz"
+    override val backingUp = "Kopiuję…"
+    override val openBackups = "Otwórz folder z kopiami ↗"
+    override fun backupFailed(message: String) = "Kopia nie powiodła się: $message"
     override val categories = "Kategorie"
     override val categoriesHelp = "Zmiana nazwy dotyczy wszystkich wydatków w tej kategorii. Zarchiwizowane nie pojawiają się przy dodawaniu."
     override val archivedLabel = "archiwum"

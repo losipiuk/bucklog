@@ -40,6 +40,8 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import net.osipiuk.bucklog.domain.Category
 import net.osipiuk.bucklog.ui.AppGraph
 import net.osipiuk.bucklog.ui.AppIcons
@@ -51,6 +53,7 @@ import net.osipiuk.bucklog.ui.components.EmojiPicker
 import net.osipiuk.bucklog.ui.components.SyncProblemBanner
 import net.osipiuk.bucklog.ui.history.describe
 import net.osipiuk.bucklog.ui.history.isProblem
+import net.osipiuk.bucklog.ui.shortLabel
 
 private sealed interface Confirm {
     data class SwitchSheet(val pending: Long) : Confirm
@@ -62,6 +65,8 @@ fun SettingsScreen(vm: SettingsViewModel, graph: AppGraph, platform: Platform, o
     val state by vm.state.collectAsState()
     val s = LocalStrings.current
     val syncing by vm.syncing.collectAsState()
+    val backingUp by vm.backingUp.collectAsState()
+    val backup by vm.backup.collectAsState(null)
     val ui = state ?: return
     val scope = rememberCoroutineScope()
     var name by remember(ui.config.myName) { mutableStateOf(ui.config.myName.orEmpty()) }
@@ -130,6 +135,29 @@ fun SettingsScreen(vm: SettingsViewModel, graph: AppGraph, platform: Platform, o
                 Text(s.openInSheets(ui.config.spreadsheetName.orEmpty()))
             }
             TextButton(onClick = { scope.launch { confirm = Confirm.SwitchSheet(vm.pendingChanges()) } }) { Text(s.useAnotherSheet) }
+
+            Section(s.backups)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(s.automaticBackups, modifier = Modifier.weight(1f))
+                Switch(checked = backup?.enabled == true, onCheckedChange = vm::setAutomaticBackups)
+            }
+            Text(s.backupsHelp, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                val error = backup?.error
+                val last = backup?.lastBackup
+                Text(
+                    when {
+                        error != null -> s.backupFailed(error)
+                        last != null -> s.lastBackup(last.toLocalDateTime(TimeZone.currentSystemDefault()).shortLabel())
+                        else -> s.noBackupYet
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (error != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f),
+                )
+                TextButton(onClick = vm::backUpNow, enabled = !backingUp) { Text(if (backingUp) s.backingUp else s.backUpNow) }
+            }
+            backup?.folderId?.let { folder -> TextButton(onClick = { vm.openBackups(folder) }) { Text(s.openBackups) } }
 
             Section(s.categories)
             Text(

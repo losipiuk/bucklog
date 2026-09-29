@@ -84,6 +84,8 @@ class SetupViewModel(private val graph: AppGraph, private val platform: Platform
             categories = DefaultCategories.forLanguage(platform.contentLanguage),
             year = currentYear(),
         )
+        // Whoever creates the sheet backs it up by default; others can turn it on in Settings.
+        graph.backups.setEnabled(true)
         load(created.spreadsheetId!!)
     }
 

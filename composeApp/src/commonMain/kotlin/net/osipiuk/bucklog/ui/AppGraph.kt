@@ -10,6 +10,7 @@ import net.osipiuk.bucklog.google.DriveClient
 import net.osipiuk.bucklog.google.SheetsClient
 import net.osipiuk.bucklog.sheet.CategoryUploader
 import net.osipiuk.bucklog.sheet.SheetSetup
+import net.osipiuk.bucklog.sync.Backups
 import net.osipiuk.bucklog.sync.ExchangeRates
 import net.osipiuk.bucklog.sync.SyncEngine
 
@@ -26,6 +27,7 @@ class AppGraph(
     val setup = SheetSetup(sheets)
     val categoryUploader = CategoryUploader(store, sheets)
     val sync = SyncEngine(store, sheets, drive, setup, categoryUploader, rates, clock)
+    val backups = Backups(store, drive, clock)
 
     /** Connects to [spreadsheetId]: reads its categories, main currency and time zone into the local store. */
     suspend fun connectSheet(spreadsheetId: String, fallbackCurrency: String) {

@@ -23,6 +23,21 @@ data class SettingsUiState(val config: AppConfig, val categories: List<Category>
 
 class SettingsViewModel(private val graph: AppGraph, private val platform: Platform) : ViewModel() {
     val syncing = MutableStateFlow(false)
+    val backingUp = MutableStateFlow(false)
+    val backup = graph.backups.status
+
+    fun setAutomaticBackups(enabled: Boolean) = viewModelScope.launch { graph.backups.setEnabled(enabled) }
+
+    fun backUpNow() {
+        if (backingUp.value) return
+        backingUp.value = true
+        viewModelScope.launch {
+            runCatching { graph.backups.backUpNow() } // failures show up in the backup status
+            backingUp.value = false
+        }
+    }
+
+    fun openBackups(folderId: String) = platform.openUrl("https://drive.google.com/drive/folders/$folderId")
 
     val state: StateFlow<SettingsUiState?> = combine(
         graph.store.config, graph.store.categories, graph.store.syncStatus, graph.store.valueFlow(LANGUAGE_KEY),
