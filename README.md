@@ -104,14 +104,45 @@ uninstalling first. That only clears the phone's local copy; the sheet has every
 People install a signed APK (there's no Play Store listing). Updates install over the previous version
 as long as they're signed with the same release key.
 
-1. Bump `versionCode` (+1) and `versionName` in `androidApp/build.gradle.kts`, commit and push.
-2. Build the APK, either:
-   - **on GitHub (preferred):** `git tag v0.5.0 && git push --tags`. The **Release** workflow tests, builds and
-     signs the APK and attaches `bucklog-v0.5.0.apk` to a GitHub Release (about 7 minutes). Running the workflow by
-     hand from the Actions tab only keeps the APK as a run artifact.
-   - **locally:** `./gradlew :androidApp:assembleRelease`.
-3. Send the APK to the people using the app (the repo is private, so they can't download it from GitHub
-   themselves). On their phone they open it and allow installing from that source.
+### Publish a new release
+
+From an up-to-date `main` with no uncommitted changes, pick the next version and run:
+
+```sh
+git checkout main && git pull && scripts/release.sh 0.5.0
+```
+
+[`scripts/release.sh`](scripts/release.sh) then:
+1. checks that you're on `main`, the working tree is clean, `main` matches `origin/main`, and the tag doesn't exist yet;
+2. bumps `versionCode` by one and sets `versionName` in `androidApp/build.gradle.kts`;
+3. commits "Release v0.5.0", creates the tag `v0.5.0`, and pushes both.
+
+The tag starts the **Release** workflow. It runs the tests, builds and signs the APK, and about 7 minutes later
+attaches `bucklog-v0.5.0.apk` to the release at
+`https://github.com/losipiuk/bucklog/releases/tag/v0.5.0`. To follow it:
+
+```sh
+gh run watch $(gh run list --workflow release.yml --limit 1 --json databaseId -q '.[0].databaseId')
+```
+
+Then download the APK:
+
+```sh
+gh release download v0.5.0 --pattern '*.apk'
+```
+
+and send it to the people using the app. The repo is private, so they can't download it from GitHub
+themselves. On their phone they open the APK and allow installing from that source. Their data stays.
+
+Versions: bump the **patch** (0.5.0 → 0.5.1) for fixes, and the **minor** (0.5.x → 0.6.0) for new features.
+
+### Other ways to build a release APK
+
+- **GitHub Actions without a release:** Actions tab → **Release** → **Run workflow**. The signed APK is only kept as
+  the run's artifact (`bucklog-apk`); nothing is tagged or published.
+- **Locally:** `./gradlew :androidApp:assembleRelease` →
+  `androidApp/build/outputs/apk/release/androidApp-release.apk` (needs the release settings from step 3).
+  Bump the version by hand first if it's going to people.
 
 ## GitHub Actions
 
