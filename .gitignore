@@ -11,3 +11,7 @@ xcuserdata/
 
 # Local copy of the release key and passwords (see secrets-backup/README.txt); never commit.
 secrets-backup/
+
+# Downloaded or built app packages (release assets live on GitHub Releases, not in git).
+*.apk
+*.aab
