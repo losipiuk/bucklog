@@ -22,8 +22,8 @@ android {
         applicationId = "net.osipiuk.bucklog"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.compileSdk.get().toInt()
-        versionCode = 7
-        versionName = "0.6.0"
+        versionCode = 8
+        versionName = "0.6.1"
         buildConfigField("String", "PICKER_API_KEY", localProp("bucklog.pickerApiKey"))
         buildConfigField("String", "CLOUD_PROJECT_NUMBER", localProp("bucklog.cloudProjectNumber"))
     }
