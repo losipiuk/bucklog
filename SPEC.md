@@ -452,13 +452,17 @@ bucklog/
 
 ---
 
-## 10. Follow-up: quick add without opening the app
-- **Home-screen widget** (Android Glance / iOS WidgetKit): a "+" button that opens the
-  Add flow directly as a lightweight overlay activity. An optional variant shows 3–4
-  one-tap favorite What+Category combos, which go straight to the amount keypad.
-- **App shortcuts** (long-press on the launcher icon): "Add expense", and "Add <top favorite>".
-- **Quick Settings tile** (Android): opens the Add flow.
-- (Android widgets can't host text input, so the amount is always entered in the overlay.)
+## 10. Quick add without opening the app
+- **Quick Settings tile** "Bucklog / Add expense" (wallet icon matching the app icon). It opens the
+  **quick-add panel**: the normal add flow in a bottom sheet over whatever app is open (a translucent
+  activity in its own task, not in Recents). Tapping outside cancels; after Add it shows the ✓ and returns to
+  that app. It opens the full app instead while Bucklog isn't set up yet.
+- From the lock screen the tile asks to unlock first (standard `unlockAndRun`). The panel is never shown
+  over the lock screen, so a locked phone doesn't reveal history-based suggestions.
+- Settings → Quick add offers the system's one-tap "Add tile" prompt (Android 13+), or explains how to
+  add it by hand.
+- Tried and dropped: a home-screen widget, app-icon shortcuts and favorites. The app icon already
+  opens straight into the add flow, so they added little.
 
 ---
 
@@ -471,7 +475,7 @@ bucklog/
   manual-edit handling.
 - **M3 — History and editing**: list, search, edit/delete, categories management.
 - **M4 — Polish**: animations, dark mode, i18n, error UX, tests.
-- **M5 — Widget, shortcuts and QS tile.**
+- **M5 — Quick Settings tile with the quick-add panel.**
 - **M6 — iOS app.**
 
 ---
