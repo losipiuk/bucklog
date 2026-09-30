@@ -40,6 +40,18 @@ Do all of this while signed in to **console.cloud.google.com** as `lukasz@osipiu
    - **Release APK**: create a second Android OAuth client, same package name, with the release
      key's SHA-1: `64:F9:21:49:0B:1E:96:AF:55:6D:C2:1C:0C:E0:27:12:53:D6:F9:36`
      (key `~/.bucklog/bucklog-release.jks`, see README → Release).
+   - **Google Play**: Play re-signs the app with Google's own *app signing key* (ours is only the upload key),
+     so each Play signing key needs its own Android client too. Find them in Play Console → App integrity →
+     Play app signing. Keys registered so far:
+     - `AA:A0:42:26:BD:50:29:92:80:20:5D:F0:DE:D0:AD:15:30:76:FC:B5` (`bucklog-play-previous`): the key that
+       signed the first Play release (listed under "Previous app signing keys").
+     - `3B:FA:BF:C7:9F:E4:52:A4:AB:22:B8:EC:06:68:83:25:85:BE:9D:EE` (`bucklog-play`): the key "In use"
+       (classical) for later releases.
+
+     If Google rotates the key again, register the new SHA-1 the same way. Symptom when one is missing: the Play
+     version installs, but sign-in stays on the welcome screen. To check which key an installed app has:
+     `adb shell pm path net.osipiuk.bucklog`, `adb pull` that base.apk, then
+     `apksigner verify --print-certs base.apk`.
 2. **OAuth client ID → Web application** (the Picker token must belong to this project;
    GIS on Android also expects a web client to exist). Name `bucklog-web`, no origins needed for now.
 3. **API key** → then edit it:
