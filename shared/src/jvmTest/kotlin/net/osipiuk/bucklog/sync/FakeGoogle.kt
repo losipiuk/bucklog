@@ -49,6 +49,12 @@ class FakeGoogle(val spreadsheetId: String = "sheet", val timeZone: String = "Eu
         private set
     val requests = mutableListOf<HttpRequestData>()
 
+    /**
+     * Runs once, right after the next values:batchGet has been answered: simulates someone editing
+     * the sheet between a sync's pull and its writes.
+     */
+    var afterNextBatchGet: (FakeGoogle.() -> Unit)? = null
+
     /** Kinds of structural requests received, e.g. "repeatCell@100" (with sheetId) or "deleteDimension@100". */
     val structuralRequests = mutableListOf<String>()
     private var nextSheetId = 100
@@ -119,6 +125,8 @@ class FakeGoogle(val spreadsheetId: String = "sheet", val timeZone: String = "Eu
                 putJsonArray("valueRanges") {
                     request.url.parameters.getAll("ranges").orEmpty().forEach { add(read(it)) }
                 }
+            }.also {
+                afterNextBatchGet?.let { edit -> afterNextBatchGet = null; handEdit(edit) }
             }
             path == "$base/values:batchUpdate" -> {
                 body!!["data"]!!.jsonArray.forEach { write(it.jsonObject["range"]!!.jsonPrimitive.content, it.jsonObject["values"]!!.jsonArray) }

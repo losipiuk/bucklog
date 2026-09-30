@@ -355,6 +355,67 @@ class SyncEngineTest {
         assertTrue(store.categories.first().single { it.name == "Fuel" }.archived)
     }
 
+    // Someone else changes the sheet between this phone's pull and its writes (SPEC §6.5).
+
+    @Test
+    fun editsTheRightRowWhenARowAboveIsDeletedMidSync() = runTest {
+        store.addEntry(entry("aaaa0001", what = "First"))
+        store.addEntry(entry("aaaa0002", what = "Second", at = "2026-09-28T17:00:00Z"))
+        engine.sync()
+        store.updateEntry(local().getValue("aaaa0002").copy(what = "Second, edited"))
+        google.afterNextBatchGet = { deleteRow("2026", 2) } // "First" disappears right after our pull
+
+        engine.sync()
+
+        assertEquals(listOf("aaaa0002" to "Second, edited"), google.rows("2026").drop(1).map { it[7] to it[2] })
+        engine.sync()
+        assertEquals(setOf("aaaa0002"), local().keys, "the other person's delete reaches this phone too")
+    }
+
+    @Test
+    fun deletesTheRightRowWhenTheSheetIsSortedMidSync() = runTest {
+        store.addEntry(entry("aaaa0001", what = "A"))
+        store.addEntry(entry("aaaa0002", what = "B"))
+        store.addEntry(entry("aaaa0003", what = "C"))
+        engine.sync()
+        store.deleteEntry("aaaa0002")
+        google.afterNextBatchGet = { tabs.getValue("2026").rows.subList(1, 4).reverse() } // someone sorts Z→A
+
+        engine.sync()
+
+        assertEquals(listOf("C", "A"), google.rows("2026").drop(1).map { it[2] })
+    }
+
+    @Test
+    fun anEditLosesToADeleteMadeMidSync() = runTest {
+        store.addEntry(entry("aaaa0001"))
+        engine.sync()
+        store.updateEntry(local().getValue("aaaa0001").copy(what = "Edited"))
+        google.afterNextBatchGet = { deleteRow("2026", 2) }
+
+        engine.sync()
+        assertEquals(1, google.rows("2026").size, "the edit doesn't resurrect or overwrite anything")
+        engine.sync()
+
+        assertEquals(emptyMap(), local())
+        assertEquals(0, store.outboxSize())
+    }
+
+    @Test
+    fun doesNotStampAnIdOnARowThatMovedMidSync() = runTest {
+        store.addEntry(entry("aaaa0001", what = "Mine"))
+        engine.sync()
+        google.handEdit { appendRow("2026", serial, "Anna", "Typed by hand", "Food", 5) } // row 3, no ID yet
+        google.afterNextBatchGet = { tabs.getValue("2026").rows.subList(1, 3).reverse() } // sorted: hand row now row 2
+
+        engine.sync()
+
+        assertEquals("aaaa0001", google.rows("2026").single { it[2] == "Mine" }[7], "an existing ID is never overwritten")
+        engine.sync()
+        val ids = google.rows("2026").drop(1).map { it[7] }
+        assertEquals(2, ids.toSet().size, "the hand-typed row gets its own ID on the next sync")
+    }
+
     @Test
     fun recordsFailures() = runTest {
         store.updateConfig(spreadsheetId = "missing")

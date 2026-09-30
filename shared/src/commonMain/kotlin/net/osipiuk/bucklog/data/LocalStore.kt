@@ -178,11 +178,14 @@ class LocalStore(
         q.pendingEntryOps().executeAsList().map { OutboxOp(it.seq, OutboxOp.Kind.valueOf(it.op), it.entry_id) }
     }
 
-    /** After a successful push: marks [ids] as synced and drops entry ops up to [maxSeq] (later ones stay queued). */
-    suspend fun completeEntryOps(ids: Collection<String>, maxSeq: Long) = withContext(io) {
+    /**
+     * After a successful push: marks [synced] entries as in the sheet, and drops the queued ops of [done]
+     * entries up to [maxSeq]. Ops queued later, or for entries the push had to skip, stay queued.
+     */
+    suspend fun completeEntryOps(synced: Collection<String>, done: Collection<String>, maxSeq: Long) = withContext(io) {
         q.transaction {
-            ids.forEach { q.markSynced(it) }
-            q.deleteEntryOpsUpTo(maxSeq)
+            synced.forEach { q.markSynced(it) }
+            done.forEach { q.deleteEntryOpsForUpTo(it, maxSeq) }
         }
     }
 

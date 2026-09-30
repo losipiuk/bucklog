@@ -116,8 +116,8 @@ SELECT count(*) FROM outbox;
 pendingEntryOps:
 SELECT seq, op, entry_id FROM outbox WHERE op IN ('UPSERT', 'DELETE') ORDER BY seq;
 
-deleteEntryOpsUpTo:
-DELETE FROM outbox WHERE op IN ('UPSERT', 'DELETE') AND seq <= ?;
+deleteEntryOpsForUpTo:
+DELETE FROM outbox WHERE op IN ('UPSERT', 'DELETE') AND entry_id = ? AND seq <= ?;
 
 deleteEntryOpsFor:
 DELETE FROM outbox WHERE op IN ('UPSERT', 'DELETE') AND entry_id = ?;

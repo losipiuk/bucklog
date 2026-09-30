@@ -321,7 +321,14 @@ For every local synced row whose ID no longer exists remotely: **delete locally*
 because the delete wins.
 
 ### 6.5 Push (drain the Outbox)
-Runs right after the pull, using its row numbers (the pull is the "re-read" before writing).
+Runs right after the pull. Rows are written by row number, so just before writing, the push **re-reads the
+tabs it touches and finds every row again by its ID**. Someone deleting rows or sorting the sheet since the
+pull (seconds earlier) therefore can't make an edit or delete hit the wrong row. The remaining window is one
+request long. The Sheets API has no conditional writes (compare-and-set or If-Match) to close it fully;
+developer metadata on rows (resolved by the server at write time) would be the next step if collisions ever show up.
+- An edit whose row was deleted in the meantime is skipped and stays queued; the next pull applies the delete (a
+  remote delete wins). An ID is stamped on a hand-typed or duplicate row only if that row still holds exactly what
+  the pull saw.
 Queued ops are collapsed per entry (the last one wins) and written in this order:
 1. **Updates** in place: one `values.batchUpdate` (RAW) covering rows whose entry stays in the
    same tab, plus ID cells for hand-typed rows and duplicates.

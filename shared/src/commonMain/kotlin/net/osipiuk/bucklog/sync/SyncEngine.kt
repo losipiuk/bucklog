@@ -6,6 +6,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
@@ -101,8 +102,6 @@ class SyncEngine(
         val rows: List<SheetRow>,
         /** Rows by (final) ID. */
         val byId: Map<String, SheetRow>,
-        /** Last non-empty row number per year tab. */
-        val lastRow: Map<String, Int>,
         /** ID cells to write: rows typed by hand without one, and duplicates. */
         val idFixes: List<SheetRow>,
     )
@@ -137,7 +136,6 @@ class SyncEngine(
             sheetIds = sheetIds,
             rows = rows,
             byId = rows.associateBy { it.id!! },
-            lastRow = rows.groupBy { it.tab }.mapValues { (_, r) -> r.maxOf { it.rowNumber } },
             idFixes = idFixes,
         )
     }
@@ -154,7 +152,7 @@ class SyncEngine(
         )
     }
 
-        private suspend fun fillRates(mainCurrency: String, tz: TimeZone) {
+    private suspend fun fillRates(mainCurrency: String, tz: TimeZone) {
         for ((id, timestamp, currency) in store.entriesMissingRate(mainCurrency)) {
             val rate = rates.rate(currency, mainCurrency, timestamp.toLocalDateTime(tz).date) ?: continue
             store.setRate(id, rate)
@@ -166,44 +164,82 @@ class SyncEngine(
      * in-place updates, then appends below the last row, then deletions bottom-up (a move to
      * another year's tab is copy-then-delete). Every step is idempotent by row ID, so a retry
      * after a partial push converges. Returns the number of entries changed.
+     *
+     * Rows are addressed by number, so someone else deleting rows or sorting the sheet between
+     * our pull and this push would shift them. To keep that window to milliseconds, the tabs are
+     * re-read right before writing and every row is found again by its ID.
      */
     private suspend fun push(spreadsheetId: String, tz: TimeZone, snapshot: Snapshot): Int {
         val ops = store.pendingEntryOps()
         val latest = ops.associateBy { it.entryId }.values
+        val touched = latest.mapTo(HashSet()) { it.entryId }
+        val entries = latest.filter { it.kind == OutboxOp.Kind.UPSERT }.mapNotNull { store.entry(it.entryId) }.associateBy { it.id }
+        val fixes = snapshot.idFixes.filter { it.id !in touched }
+        fun tabOf(e: Entry) = SheetLayout.yearTab(e.timestamp.toLocalDateTime(tz).year)
+
+        val rowTabs = buildSet {
+            latest.forEach { op -> snapshot.byId[op.entryId]?.let { add(it.tab) } }
+            fixes.forEach { add(it.tab) }
+            entries.values.map(::tabOf).filter { it in snapshot.sheetIds }.forEach(::add)
+        }.sorted()
+        val fresh: Map<String, List<List<JsonElement>>> = if (rowTabs.isEmpty()) {
+            emptyMap()
+        } else {
+            rowTabs.zip(sheets.batchGet(spreadsheetId, rowTabs.map { SheetLayout.range(it, "A2:H") })).associate { (tab, range) -> tab to range.values }
+        }
+        val rowById = buildMap {
+            fresh.forEach { (tab, rows) -> rows.forEachIndexed { i, cells -> idOf(cells)?.let { putIfAbsent(it, tab to i + 2) } } }
+        }
+
         val updates = mutableListOf<ValueRange>()
         val deletes = mutableMapOf<String, MutableList<Int>>()
         val appends = mutableMapOf<String, MutableList<Entry>>()
         val synced = mutableListOf<String>()
+        val done = mutableSetOf<String>()
         for (op in latest) {
-            val remote = snapshot.byId[op.entryId]
+            val id = op.entryId
+            val now = rowById[id]
             if (op.kind == OutboxOp.Kind.DELETE) {
-                remote?.let { deletes.getOrPut(it.tab) { mutableListOf() } += it.rowNumber }
+                now?.let { (tab, row) -> deletes.getOrPut(tab) { mutableListOf() } += row }
+                done += id
                 continue
             }
-            val entry = store.entry(op.entryId) ?: continue
-            val tab = SheetLayout.yearTab(entry.timestamp.toLocalDateTime(tz).year)
-            if (remote != null && remote.tab == tab) {
-                updates += ValueRange(range = SheetLayout.range(tab, "A${remote.rowNumber}:H${remote.rowNumber}"), values = listOf(SheetRows.toRow(entry, tz)))
+            val entry = entries[id]
+            if (entry == null) {
+                done += id // deleted locally since it was queued
+                continue
+            }
+            // Someone deleted the row after our pull: leave it queued, the next pull applies their delete.
+            if (snapshot.byId[id] != null && now == null) continue
+            val tab = tabOf(entry)
+            if (now != null && now.first == tab) {
+                updates += ValueRange(range = SheetLayout.range(tab, "A${now.second}:H${now.second}"), values = listOf(SheetRows.toRow(entry, tz)))
             } else {
                 // New entry, or its date moved it to another year's tab.
-                remote?.let { deletes.getOrPut(it.tab) { mutableListOf() } += it.rowNumber }
+                now?.let { (oldTab, row) -> deletes.getOrPut(oldTab) { mutableListOf() } += row }
                 appends.getOrPut(tab) { mutableListOf() } += entry
             }
-            synced += entry.id
+            synced += id
+            done += id
         }
-        val touched = latest.mapTo(HashSet()) { it.entryId }
-        for (row in snapshot.idFixes) {
-            if (row.id !in touched) updates += ValueRange(range = SheetLayout.range(row.tab, "H${row.rowNumber}"), values = listOf(listOf(JsonPrimitive(row.id))))
+        for (fix in fixes) {
+            // Stamp the ID only if that row still holds exactly what the pull saw (no ID, or the duplicate
+            // one), i.e. nobody sorted, inserted or deleted rows meanwhile.
+            val cells = fresh[fix.tab]?.getOrNull(fix.rowNumber - 2) ?: continue
+            if (idOf(cells) == idOf(fix.cells) && sameContent(cells, fix.cells)) {
+                updates += ValueRange(range = SheetLayout.range(fix.tab, "H${fix.rowNumber}"), values = listOf(listOf(JsonPrimitive(fix.id))))
+            }
         }
 
         if (updates.isNotEmpty()) sheets.batchUpdateValues(spreadsheetId, updates)
         val newTabs = setup.addYearTabs(spreadsheetId, appends.keys.filter { it !in snapshot.sheetIds }.sorted())
-        for ((tab, entries) in appends) {
-            val after = if (tab in newTabs) 1 else snapshot.lastRow[tab] ?: 1
+        for ((tab, tabEntries) in appends) {
+            // Values come back without trailing empty rows, so the last used row is size + 1 (data starts at row 2).
+            val after = if (tab in newTabs) 1 else (fresh[tab]?.size ?: 0) + 1
             sheets.append(
                 spreadsheetId,
                 SheetLayout.range(tab, "A${after + 1}:H"),
-                entries.sortedBy { it.timestamp }.map { SheetRows.toRow(it, tz) },
+                tabEntries.sortedBy { it.timestamp }.map { SheetRows.toRow(it, tz) },
             )
         }
         // Appended rows are inserted rows, which don't inherit column formats: reapply them so the
@@ -215,9 +251,15 @@ class SyncEngine(
             deletes.flatMap { (tab, rowNumbers) -> rowNumbers.sortedDescending().map { deleteRow(snapshot.sheetIds.getValue(tab), it) } }
         if (requests.isNotEmpty()) sheets.batchUpdate(spreadsheetId, requests)
         if (formatAll) store.putValue(SyncStatus.FORMATS_APPLIED, spreadsheetId)
-        store.completeEntryOps(synced, maxSeq = ops.maxOfOrNull { it.seq } ?: 0)
+        store.completeEntryOps(synced, done, maxSeq = ops.maxOfOrNull { it.seq } ?: 0)
         return latest.size
     }
+
+    private fun idOf(cells: List<JsonElement>): String? = (cells.getOrNull(7) as? JsonPrimitive)?.content?.trim()?.ifEmpty { null }
+
+    /** Same Date…Rate cells, i.e. still the same row. */
+    private fun sameContent(a: List<JsonElement>, b: List<JsonElement>): Boolean =
+        (0 until 7).all { i -> (a.getOrNull(i) as? JsonPrimitive)?.content.orEmpty() == (b.getOrNull(i) as? JsonPrimitive)?.content.orEmpty() }
 
     private fun deleteRow(sheetId: Int, rowNumber: Int) = buildJsonObject {
         putJsonObject("deleteDimension") {
