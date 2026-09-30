@@ -11,13 +11,13 @@ import androidx.activity.result.ActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
+import java.util.Locale
+import java.util.TimeZone
 import kotlinx.coroutines.CompletableDeferred
 import net.osipiuk.bucklog.auth.GoogleAuthorizer
 import net.osipiuk.bucklog.auth.PickerLauncher
 import net.osipiuk.bucklog.ui.PickedSheet
 import net.osipiuk.bucklog.ui.Platform
-import java.util.Locale
-import java.util.TimeZone
 
 /**
  * Android side of [Platform], bound to [activity]. Must be created in onCreate (it registers
@@ -113,6 +113,10 @@ class AndroidPlatform(
         val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text)
         activity.startActivity(Intent.createChooser(send, title))
     }
+
+    override val canAddQuickTile: Boolean get() = QuickAddTileService.canRequestAdd
+
+    override fun addQuickTile() = QuickAddTileService.requestAdd(activity)
 
     override fun openUrl(url: String) {
         activity.startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url)))

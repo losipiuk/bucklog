@@ -22,6 +22,12 @@ interface Platform {
     /** Opens the system share sheet with [text] (WhatsApp, SMS, email…). */
     fun shareText(text: String, title: String)
 
+    /** Whether [addQuickTile] can show the system's one-tap "Add tile?" prompt (Android 13+). */
+    val canAddQuickTile: Boolean
+
+    /** Offers to add Bucklog's quick-add tile to Quick Settings. */
+    fun addQuickTile()
+
     /** Opens a web link (e.g. the family sheet in Google Sheets). */
     fun openUrl(url: String)
 

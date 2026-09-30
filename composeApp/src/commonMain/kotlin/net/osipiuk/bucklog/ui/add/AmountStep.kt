@@ -49,8 +49,9 @@ fun AmountStep(
     onToggleRefund: () -> Unit,
     onCurrencyClick: () -> Unit,
     onNext: () -> Unit,
-    onOpenHistory: () -> Unit,
-    onOpenMenu: () -> Unit,
+    /** Null in the quick-add panel, which has no menu or History. */
+    onOpenHistory: (() -> Unit)?,
+    onOpenMenu: (() -> Unit)?,
 ) {
     val refund = state.form.refund
     val s = LocalStrings.current
@@ -61,10 +62,10 @@ fun AmountStep(
     }
     Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onOpenMenu) { Icon(AppIcons.Menu, contentDescription = s.menu) }
+            onOpenMenu?.let { IconButton(onClick = it) { Icon(AppIcons.Menu, contentDescription = s.menu) } }
             Text("Bucklog", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
             Spacer(Modifier.weight(1f))
-            IconButton(onClick = onOpenHistory) { Icon(AppIcons.History, contentDescription = s.history) }
+            onOpenHistory?.let { IconButton(onClick = it) { Icon(AppIcons.History, contentDescription = s.history) } }
         }
         Spacer(Modifier.weight(1f))
         if (refund) {

@@ -84,6 +84,10 @@ interface Strings {
     fun openInSheets(name: String): String
     val useAnotherSheet: String
     val backups: String
+    val quickAdd: String
+    val quickAddHelp: String
+    val addQuickTile: String
+    val quickTileManual: String
     val automaticBackups: String
     val backupsHelp: String
     fun lastBackup(time: String): String
@@ -230,6 +234,10 @@ object EnglishStrings : Strings {
     override fun openInSheets(name: String) = "Open “$name” in Google Sheets ↗"
     override val useAnotherSheet = "Use another sheet…"
     override val backups = "Backups"
+    override val quickAdd = "Quick add"
+    override val quickAddHelp = "Add expenses from anywhere with the “Bucklog” tile in Quick Settings (swipe down from the top of the screen twice)."
+    override val addQuickTile = "Add Quick Settings tile"
+    override val quickTileManual = "Swipe down twice, tap ✎ (edit), then drag “Bucklog” into your tiles."
     override val automaticBackups = "Weekly backup to my Drive"
     override val backupsHelp = "Copies the whole sheet to a “Bucklog backups” folder in your Google Drive when it changed, keeping the last 8."
     override fun lastBackup(time: String) = "Last backup $time"
@@ -382,6 +390,10 @@ object PolishStrings : Strings {
     override fun openInSheets(name: String) = "Otwórz „$name” w Arkuszach Google ↗"
     override val useAnotherSheet = "Użyj innego arkusza…"
     override val backups = "Kopie zapasowe"
+    override val quickAdd = "Szybkie dodawanie"
+    override val quickAddHelp = "Dodawaj wydatki z dowolnego miejsca kafelkiem „Bucklog” w Szybkich ustawieniach (dwa razy przesuń palcem w dół od góry ekranu)."
+    override val addQuickTile = "Dodaj kafelek do Szybkich ustawień"
+    override val quickTileManual = "Przesuń dwa razy w dół, stuknij ✎ (edytuj) i przeciągnij „Bucklog” do kafelków."
     override val automaticBackups = "Cotygodniowa kopia na moim Dysku"
     override val backupsHelp = "Kopiuje cały arkusz do folderu „Bucklog backups” na Twoim Dysku Google, gdy się zmienił; zostaje 8 ostatnich."
     override fun lastBackup(time: String) = "Ostatnia kopia $time"

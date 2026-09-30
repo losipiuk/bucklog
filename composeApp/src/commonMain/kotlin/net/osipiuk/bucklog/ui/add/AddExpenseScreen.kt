@@ -38,7 +38,15 @@ import net.osipiuk.bucklog.ui.Platform
 import net.osipiuk.bucklog.ui.components.SyncProblemBanner
 
 @Composable
-fun AddExpenseScreen(vm: AddViewModel, graph: AppGraph, platform: Platform, onOpenHistory: () -> Unit, onOpenMenu: () -> Unit) {
+fun AddExpenseScreen(
+    vm: AddViewModel,
+    graph: AppGraph,
+    platform: Platform,
+    onOpenHistory: (() -> Unit)?,
+    onOpenMenu: (() -> Unit)?,
+    // The full screen pads for the system bars; the quick-add panel only for the bottom ones.
+    modifier: Modifier = Modifier.fillMaxSize().safeDrawingPadding().imePadding(),
+) {
     val state by vm.state.collectAsState()
     val sync by graph.store.syncStatus.collectAsState(null)
     val ui = state ?: return
@@ -47,8 +55,8 @@ fun AddExpenseScreen(vm: AddViewModel, graph: AppGraph, platform: Platform, onOp
 
     platform.BackHandler(enabled = ui.form.step == AddStep.DETAILS, onBack = vm::back)
 
-    Column(Modifier.fillMaxSize().safeDrawingPadding().imePadding()) {
-        if (ui.form.step == AddStep.AMOUNT) SyncProblemBanner(sync, graph, platform)
+    Column(modifier) {
+        if (ui.form.step == AddStep.AMOUNT && onOpenMenu != null) SyncProblemBanner(sync, graph, platform)
         AnimatedContent(
             targetState = ui.form.step,
             transitionSpec = {

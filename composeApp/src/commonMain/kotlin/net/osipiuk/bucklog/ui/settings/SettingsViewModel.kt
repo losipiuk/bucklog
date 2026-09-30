@@ -37,6 +37,10 @@ class SettingsViewModel(private val graph: AppGraph, private val platform: Platf
         }
     }
 
+    val canAddQuickTile: Boolean get() = platform.canAddQuickTile
+
+    fun addQuickTile() = platform.addQuickTile()
+
     fun openBackups(folderId: String) = platform.openUrl("https://drive.google.com/drive/folders/$folderId")
 
     val state: StateFlow<SettingsUiState?> = combine(

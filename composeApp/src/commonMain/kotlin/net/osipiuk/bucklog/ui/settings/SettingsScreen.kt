@@ -136,6 +136,14 @@ fun SettingsScreen(vm: SettingsViewModel, graph: AppGraph, platform: Platform, o
             }
             TextButton(onClick = { scope.launch { confirm = Confirm.SwitchSheet(vm.pendingChanges()) } }) { Text(s.useAnotherSheet) }
 
+            Section(s.quickAdd)
+            Text(s.quickAddHelp, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (vm.canAddQuickTile) {
+                OutlinedButton(onClick = vm::addQuickTile) { Text(s.addQuickTile) }
+            } else {
+                Text(s.quickTileManual, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+
             Section(s.backups)
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(s.automaticBackups, modifier = Modifier.weight(1f))

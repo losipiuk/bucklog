@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Quick Settings tile: the launcher icon's wallet and coin (same proportions, scaled to 24dp),
+     in one color since the system tints tiles. The clasp is a cut-out. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M13.33,3.63 a2.2,2.2 0 1 1 0,4.4 a2.2,2.2 0 1 1 0,-4.4 z" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:fillType="evenOdd"
+        android:pathData="M6.33,8.83 H17.67 A2.33,2.33 0 0 1 20,11.17 V18.5 A2.33,2.33 0 0 1 17.67,20.83 H6.33 A2.33,2.33 0 0 1 4,18.5 V11.17 A2.33,2.33 0 0 1 6.33,8.83 Z M13.33,12.17 H20 V17.5 H13.33 A2.67,2.67 0 0 1 13.33,12.17 Z" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M14.33,13.83 a1,1 0 1 1 0,2 a1,1 0 1 1 0,-2 z" />
+</vector>
