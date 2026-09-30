@@ -6,7 +6,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class InviteLinksTest {
-    private val invite = Invite("19rMg9hbNN_z_o-cbWmA46kCw0B5y-HlpBeou3Xld5CM", "Wydatki & co", "Łukasz")
+    private val invite = Invite("1ExampleSheetId_abcdefghijklmnopqrstuvwxyz0", "Wydatki & co", "Łukasz")
 
     @Test
     fun pageLinkKeepsDetailsInTheFragment() {
