@@ -106,7 +106,7 @@ Key/value pairs:
 - Year tabs are created by the app on demand (the first entry of a new year):
   header, formats, validation, frozen row.
 - Other tabs in the spreadsheet are ignored, so users can add their own
-  pivot tables and charts.
+  pivot tables and charts. The app appends to its own `Log` tab (§6.5) and never reads it.
 
 ---
 
@@ -326,6 +326,16 @@ tabs it touches and finds every row again by its ID**. Someone deleting rows or 
 pull (seconds earlier) therefore can't make an edit or delete hit the wrong row. The remaining window is one
 request long. The Sheets API has no conditional writes (compare-and-set or If-Match) to close it fully;
 developer metadata on rows (resolved by the server at write time) would be the next step if collisions ever show up.
+- **Collisions are made visible, not just rarer:**
+  - *Read-back:* after writing, the push reads the touched rows again. A change whose row doesn't hold what was
+    written (another write hit it in the remaining window) isn't marked as synced. It's re-queued, and the sync
+    status shows a warning until a later push lands cleanly.
+  - *Recently removed:* whenever a pull removes an entry from the phone because it's gone from the sheet (deleted
+    by someone, by hand, or overwritten in a collision), a copy is kept for 60 days. History shows "Recently
+    removed (N)" with **Restore** (uploads it again as new) and **Dismiss**.
+  - *Change log:* every change the app writes is also appended to a `Log` tab (Time, Who, Action add/edit/delete,
+    ID, Before, After), created on first use. Appends can't collide, so it's a reliable who-changed-what trail.
+    Best effort: a failed log append never fails the sync.
 - An edit whose row was deleted in the meantime is skipped and stays queued; the next pull applies the delete (a
   remote delete wins). An ID is stamped on a hand-typed or duplicate row only if that row still holds exactly what
   the pull saw.
