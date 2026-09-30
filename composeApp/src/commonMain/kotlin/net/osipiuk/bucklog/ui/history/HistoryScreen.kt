@@ -30,6 +30,7 @@ import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -83,6 +84,7 @@ fun HistoryScreen(
     onDeletedShown: () -> Unit,
     onBack: () -> Unit,
     onEdit: (String) -> Unit,
+    onRemoved: () -> Unit,
 ) {
     val state by vm.state.collectAsState()
     val refreshing by vm.refreshing.collectAsState()
@@ -108,6 +110,10 @@ fun HistoryScreen(
             }
             val ui = state ?: return@Column
             SyncProblemBanner(ui.sync, graph, platform)
+            val removedCount by remember { graph.store.removedEntries }.collectAsState(emptyList())
+            if (removedCount.isNotEmpty()) {
+                TextButton(onClick = onRemoved, modifier = Modifier.padding(horizontal = 8.dp)) { Text(s.recentlyRemovedButton(removedCount.size)) }
+            }
             Row(Modifier.padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
                 OutlinedTextField(
                     // Local state, not ui.query: the filtered state arrives a frame later and would reset the cursor.
@@ -267,6 +273,7 @@ private fun EntryRow(entry: Entry, ui: HistoryUiState, money: MoneyFormat, tz: T
 
 fun SyncStatus?.describe(s: Strings): String {
     if (this == null) return ""
+    warning?.toIntOrNull()?.let { return s.syncWarning(it) }
     val last = lastSuccess?.toLocalDateTime(TimeZone.currentSystemDefault())?.let { s.synced(it.shortLabel()) } ?: s.notSyncedYet
     val pending = if (pendingChanges > 0) " · ${s.waiting(pendingChanges)}" else ""
     return when (errorKind) {
@@ -278,5 +285,5 @@ fun SyncStatus?.describe(s: Strings): String {
     }
 }
 
-/** Errors worth red text; being offline isn't one. */
-fun SyncStatus?.isProblem(): Boolean = this?.errorKind != null && errorKind != SyncErrorKind.OFFLINE
+/** Errors (and write warnings) worth red text; being offline isn't one. */
+fun SyncStatus?.isProblem(): Boolean = this != null && (warning != null || (errorKind != null && errorKind != SyncErrorKind.OFFLINE))

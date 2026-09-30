@@ -34,6 +34,7 @@ import net.osipiuk.bucklog.ui.history.HistoryScreen
 import net.osipiuk.bucklog.ui.history.HistoryViewModel
 import net.osipiuk.bucklog.ui.invite.InviteScreen
 import net.osipiuk.bucklog.ui.invite.InviteViewModel
+import net.osipiuk.bucklog.ui.removed.RemovedScreen
 import net.osipiuk.bucklog.ui.settings.SettingsScreen
 import net.osipiuk.bucklog.ui.settings.SettingsViewModel
 import net.osipiuk.bucklog.ui.setup.SetupScreen
@@ -47,6 +48,7 @@ private sealed interface Screen {
     data class Edit(val entryId: String) : Screen
     data object Settings : Screen
     data object Invite : Screen
+    data object Removed : Screen
 }
 
 /** Root: setup until configured, then straight into Add Expense (SPEC §5.2), with History/Edit/Settings on top. */
@@ -143,6 +145,7 @@ private fun Screens(graph: AppGraph, platform: Platform) {
                 onDeletedShown = { deleted = null },
                 onBack = ::pop,
                 onEdit = { push(Screen.Edit(it)) },
+                onRemoved = { push(Screen.Removed) },
             )
         }
         is Screen.Edit -> Surface(padding) {
@@ -153,6 +156,7 @@ private fun Screens(graph: AppGraph, platform: Platform) {
             )
         }
         Screen.Settings -> Surface(padding) { SettingsScreen(viewModel { SettingsViewModel(graph, platform) }, graph, platform, onBack = ::pop) }
+        Screen.Removed -> Surface(padding) { RemovedScreen(graph, platform, onBack = ::pop) }
         Screen.Invite -> Surface(padding) { InviteScreen(viewModel { InviteViewModel(graph, platform) }, onBack = ::pop) }
     }
 }

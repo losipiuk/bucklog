@@ -68,6 +68,14 @@ interface Strings {
     val notSyncedYet: String
     fun waiting(n: Long): String
     val offline: String
+    fun syncWarning(n: Int): String
+    fun recentlyRemovedButton(n: Int): String
+    val recentlyRemoved: String
+    val recentlyRemovedHelp: String
+    fun removedOn(time: String): String
+    val restore: String
+    val dismiss: String
+    val nothingRemoved: String
 
     // Settings
     val you: String
@@ -218,6 +226,14 @@ object EnglishStrings : Strings {
     override val notSyncedYet = "Not synced yet"
     override fun waiting(n: Long) = "$n waiting"
     override val offline = "Offline, will sync when back online"
+    override fun syncWarning(n: Int) = "⚠️ ${if (n == 1) "1 change" else "$n changes"} didn't land in the sheet as expected (someone may have edited it at the same moment). Retrying; check Recently removed."
+    override fun recentlyRemovedButton(n: Int) = "Recently removed ($n)"
+    override val recentlyRemoved = "Recently removed"
+    override val recentlyRemovedHelp = "Expenses that disappeared from the sheet in the last 60 days: deleted by someone in Google Sheets or another phone, or lost when two people changed the sheet at the same moment. Restore puts one back."
+    override fun removedOn(time: String) = "removed $time"
+    override val restore = "Restore"
+    override val dismiss = "Dismiss"
+    override val nothingRemoved = "Nothing was removed recently."
 
     override val you = "You"
     override val yourName = "Your name"
@@ -374,6 +390,14 @@ object PolishStrings : Strings {
     override val notSyncedYet = "Jeszcze nie zsynchronizowano"
     override fun waiting(n: Long) = "$n ${plural(n, "czeka", "czekają", "czeka")}"
     override val offline = "Brak sieci, synchronizacja po powrocie online"
+    override fun syncWarning(n: Int) = "⚠️ $n ${plural(n.toLong(), "zmiana nie trafiła", "zmiany nie trafiły", "zmian nie trafiło")} do arkusza tak, jak powinno (ktoś mógł go edytować w tej samej chwili). Ponawiam; sprawdź Ostatnio usunięte."
+    override fun recentlyRemovedButton(n: Int) = "Ostatnio usunięte ($n)"
+    override val recentlyRemoved = "Ostatnio usunięte"
+    override val recentlyRemovedHelp = "Wydatki, które zniknęły z arkusza w ostatnich 60 dniach: usunięte przez kogoś w Arkuszach Google lub na innym telefonie albo utracone, gdy dwie osoby zmieniły arkusz w tej samej chwili. Przywróć, aby je odzyskać."
+    override fun removedOn(time: String) = "usunięte $time"
+    override val restore = "Przywróć"
+    override val dismiss = "Ukryj"
+    override val nothingRemoved = "Nic nie zostało ostatnio usunięte."
 
     override val you = "Ty"
     override val yourName = "Twoje imię"
