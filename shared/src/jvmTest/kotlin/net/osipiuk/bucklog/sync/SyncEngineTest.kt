@@ -416,6 +416,65 @@ class SyncEngineTest {
         assertEquals(2, ids.toSet().size, "the hand-typed row gets its own ID on the next sync")
     }
 
+    // Collisions we can't prevent are made visible and recoverable.
+
+    @Test
+    fun keepsRemovedEntriesForRestoring() = runTest {
+        store.addEntry(entry("aaaa0001", what = "Kawa", amount = 1200))
+        engine.sync()
+        google.handEdit { deleteRow("2026", 2) } // deleted in Sheets by hand
+
+        engine.sync()
+        val removed = store.removedEntries.first().single()
+        assertEquals("Kawa", removed.entry.what)
+        assertEquals(emptyMap(), local())
+
+        store.restoreRemoved(removed)
+        engine.sync()
+        assertEquals(listOf("aaaa0001" to "Kawa"), google.rows("2026").drop(1).map { it[7] to it[2] })
+        assertEquals(emptyList(), store.removedEntries.first())
+    }
+
+    @Test
+    fun detectsAWriteThatHitTheWrongRow() = runTest {
+        store.addEntry(entry("aaaa0001", what = "A", at = "2026-09-28T10:00:00Z"))
+        store.addEntry(entry("aaaa0002", what = "B", at = "2026-09-28T11:00:00Z"))
+        store.addEntry(entry("aaaa0003", what = "C", at = "2026-09-28T12:00:00Z"))
+        engine.sync()
+        store.updateEntry(local().getValue("aaaa0002").copy(what = "B, edited"))
+        // Row A is deleted in the tiny window after our last re-read, so B's update lands on C's row.
+        google.afterNextBatchGet = { afterNextBatchGet = { deleteRow("2026", 2) } }
+
+        engine.sync()
+        assertEquals("1", store.syncStatus.first().warning, "the misdirected write is noticed")
+        assertTrue(store.pendingEntryOps().any { it.entryId == "aaaa0002" }, "and retried")
+
+        engine.sync()
+        engine.sync()
+        assertEquals("B, edited", google.rows("2026").drop(1).single { it[7] == "aaaa0002" }[2])
+        // A was deleted by the other person; C was overwritten by the collision. Both can be restored.
+        assertEquals(setOf("A", "C"), store.removedEntries.first().map { it.entry.what }.toSet())
+        assertNull(store.syncStatus.first().warning)
+    }
+
+    @Test
+    fun logsChangesToALogTab() = runTest {
+        store.addEntry(entry("aaaa0001", what = "Milk"))
+        engine.sync()
+        store.updateEntry(local().getValue("aaaa0001").copy(what = "Oat milk"))
+        engine.sync()
+        store.deleteEntry("aaaa0001")
+        engine.sync()
+
+        val log = google.rows("Log")
+        assertEquals(listOf("Time", "Who", "Action", "ID", "Before", "After"), log[0])
+        assertEquals(listOf("add", "edit", "delete"), log.drop(1).map { it[2] })
+        assertEquals(listOf("Łukasz"), log.drop(1).map { it[1] }.distinct())
+        val edit = log[2]
+        assertTrue((edit[4] as String).contains("Milk") && (edit[5] as String).contains("Oat milk"), edit.toString())
+        assertEquals("28.09.2026 18:00 · Oat milk · Food · 35.30 PLN · Łukasz", edit[5])
+    }
+
     @Test
     fun recordsFailures() = runTest {
         store.updateConfig(spreadsheetId = "missing")

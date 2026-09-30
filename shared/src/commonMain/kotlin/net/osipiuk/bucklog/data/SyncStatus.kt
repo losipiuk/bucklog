@@ -1,6 +1,10 @@
 package net.osipiuk.bucklog.data
 
+import net.osipiuk.bucklog.domain.Entry
 import kotlin.time.Instant
+
+/** An entry that disappeared from the sheet, kept so it can be restored. */
+data class RemovedEntry(val entry: Entry, val removedAt: Instant)
 
 /** One queued local change. */
 data class OutboxOp(val seq: Long, val kind: Kind, val entryId: String) {
@@ -23,6 +27,8 @@ data class SyncStatus(
     val lastSuccess: Instant?,
     /** Message of the last failed sync; cleared by the next successful one. */
     val error: String?,
+    /** Set when a write didn't land as expected (e.g. a collision); cleared by the next clean push. */
+    val warning: String?,
     val errorKind: SyncErrorKind?,
     val pendingChanges: Long,
 ) {
@@ -30,6 +36,7 @@ data class SyncStatus(
         const val LAST_SUCCESS = "sync_last_success"
         const val ERROR = "sync_error"
         const val ERROR_KIND = "sync_error_kind"
+        const val WARNING = "sync_warning"
         const val DRIVE_VERSION = "sync_drive_version"
 
         /** Set once year-tab column formats were (re)applied to every tab of this spreadsheet. */

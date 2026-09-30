@@ -71,7 +71,7 @@ class SyncEngine(
             } else {
                 val snapshot = pull(spreadsheetId, tz, config.mainCurrency)
                 fillRates(config.mainCurrency, tz)
-                val pushed = push(spreadsheetId, tz, snapshot)
+                val pushed = push(spreadsheetId, tz, snapshot, who = config.myName.orEmpty())
                 store.putValue(SyncStatus.DRIVE_VERSION, version)
                 SyncOutcome.Synced(snapshot.rows.size, pushed)
             }
@@ -131,7 +131,7 @@ class SyncEngine(
         }
         val remote = rows.map { row -> row.entry ?: invalidEntry(row, tz, mainCurrency) }
         val raw = rows.filter { it.entry == null }.associate { it.id!! to SheetRows.rawJson(it.cells) }
-        store.applyPull(remote, raw, pendingIds = store.pendingEntryOps().mapTo(HashSet()) { it.entryId })
+        store.applyPull(remote, raw, pendingIds = store.pendingEntryOps().mapTo(HashSet()) { it.entryId }, now = clock.now())
         return Snapshot(
             sheetIds = sheetIds,
             rows = rows,
@@ -169,7 +169,7 @@ class SyncEngine(
      * our pull and this push would shift them. To keep that window to milliseconds, the tabs are
      * re-read right before writing and every row is found again by its ID.
      */
-    private suspend fun push(spreadsheetId: String, tz: TimeZone, snapshot: Snapshot): Int {
+    private suspend fun push(spreadsheetId: String, tz: TimeZone, snapshot: Snapshot, who: String): Int {
         val ops = store.pendingEntryOps()
         val latest = ops.associateBy { it.entryId }.values
         val touched = latest.mapTo(HashSet()) { it.entryId }
@@ -196,11 +196,13 @@ class SyncEngine(
         val appends = mutableMapOf<String, MutableList<Entry>>()
         val synced = mutableListOf<String>()
         val done = mutableSetOf<String>()
+        val deleted = mutableListOf<String>()
         for (op in latest) {
             val id = op.entryId
             val now = rowById[id]
             if (op.kind == OutboxOp.Kind.DELETE) {
                 now?.let { (tab, row) -> deletes.getOrPut(tab) { mutableListOf() } += row }
+                if (now != null) deleted += id
                 done += id
                 continue
             }
@@ -251,9 +253,81 @@ class SyncEngine(
             deletes.flatMap { (tab, rowNumbers) -> rowNumbers.sortedDescending().map { deleteRow(snapshot.sheetIds.getValue(tab), it) } }
         if (requests.isNotEmpty()) sheets.batchUpdate(spreadsheetId, requests)
         if (formatAll) store.putValue(SyncStatus.FORMATS_APPLIED, spreadsheetId)
-        store.completeEntryOps(synced, done, maxSeq = ops.maxOfOrNull { it.seq } ?: 0)
+
+        // Read back what we wrote: a collision we couldn't prevent should at least not go unnoticed.
+        val writtenTabs = (fresh.keys + appends.keys).sorted()
+        val after = if (writtenTabs.isEmpty() || (synced.isEmpty() && deleted.isEmpty())) {
+            emptyMap()
+        } else {
+            buildMap {
+                writtenTabs.zip(sheets.batchGet(spreadsheetId, writtenTabs.map { SheetLayout.range(it, "A2:H") })).forEach { (_, range) ->
+                    range.values.forEach { cells -> idOf(cells)?.let { putIfAbsent(it, cells) } }
+                }
+            }
+        }
+        val mainCurrency = store.config.first().mainCurrency
+        val failedWrites = synced.filter { id ->
+            val cells = after[id] ?: return@filter true
+            val read = SheetRows.parseEntry(id, cells, tz, mainCurrency) ?: return@filter true
+            !sameValues(read, entries.getValue(id))
+        }
+        val failedDeletes = deleted.filter { it in after }
+        store.completeEntryOps(synced - failedWrites.toSet(), done, maxSeq = ops.maxOfOrNull { it.seq } ?: 0)
+        if (failedWrites.isNotEmpty() || failedDeletes.isNotEmpty()) {
+            store.requeue(failedWrites)
+            store.requeueDeletes(failedDeletes)
+            store.putValue(SyncStatus.WARNING, (failedWrites.size + failedDeletes.size).toString())
+        } else if (synced.isNotEmpty() || deleted.isNotEmpty()) {
+            store.putValue(SyncStatus.WARNING, null)
+        }
+
+        val logged = synced.filter { it !in failedWrites }.map { id ->
+            val before = snapshot.byId[id]?.entry
+            LogRow(if (before == null) "add" else "edit", id, before, entries.getValue(id))
+        } + deleted.filter { it !in failedDeletes }.map { id -> LogRow("delete", id, snapshot.byId[id]?.entry, null) }
+        appendLog(spreadsheetId, tz, snapshot, who, logged)
         return latest.size
     }
+
+    private class LogRow(val action: String, val id: String, val before: Entry?, val after: Entry?)
+
+    /**
+     * Appends one row per change to the Log tab (created on first use): who changed what, with the values
+     * before and after. Appends can't collide. Best effort: a failure here never fails the sync.
+     */
+    private suspend fun appendLog(spreadsheetId: String, tz: TimeZone, snapshot: Snapshot, who: String, rows: List<LogRow>) {
+        if (rows.isEmpty()) return
+        try {
+            if (SheetLayout.LOG !in snapshot.sheetIds) setup.addLogTab(spreadsheetId)
+            val time = JsonPrimitive(SheetDates.toSerial(clock.now(), tz))
+            sheets.append(
+                spreadsheetId,
+                SheetLayout.range(SheetLayout.LOG, "A:F"),
+                rows.map { listOf(time, JsonPrimitive(who), JsonPrimitive(it.action), JsonPrimitive(it.id), JsonPrimitive(describe(it.before, tz)), JsonPrimitive(describe(it.after, tz))) },
+            )
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            // The data itself is written and verified; losing a log line is acceptable.
+        }
+    }
+
+    /** "28.09.2026 18:42 · Milk · Groceries · 35.30 PLN · Łukasz" */
+    private fun describe(e: Entry?, tz: TimeZone): String {
+        e ?: return ""
+        val t = e.timestamp.toLocalDateTime(tz)
+        fun two(n: Int) = n.toString().padStart(2, '0')
+        val date = "${two(t.day)}.${two(t.month.ordinal + 1)}.${t.year} ${two(t.hour)}:${two(t.minute)}"
+        val amount = SheetRows.formatMinor(e.amountMinor, net.osipiuk.bucklog.domain.Currencies.digits(e.currency))
+        return listOf(date, e.what, e.category, "$amount ${e.currency}", e.who).filter { it.isNotBlank() }.joinToString(" · ")
+    }
+
+    /** Whether the row read back holds what we wrote (sheets keep whole seconds and plain numbers). */
+    private fun sameValues(read: Entry, wrote: Entry): Boolean =
+        read.timestamp.epochSeconds == wrote.timestamp.epochSeconds && read.who == wrote.who.trim() &&
+            read.what == wrote.what.trim() && read.category == wrote.category.trim() &&
+            read.amountMinor == wrote.amountMinor && read.currency == wrote.currency &&
+            read.rate?.toDoubleOrNull() == wrote.rate?.toDoubleOrNull()
 
     private fun idOf(cells: List<JsonElement>): String? = (cells.getOrNull(7) as? JsonPrimitive)?.content?.trim()?.ifEmpty { null }
 

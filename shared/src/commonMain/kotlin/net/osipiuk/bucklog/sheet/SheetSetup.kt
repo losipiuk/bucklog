@@ -74,7 +74,18 @@ class SheetSetup(private val sheets: SheetsClient) {
         return sheetIds
     }
 
-        suspend fun readConfig(spreadsheetId: String): SheetConfig {
+        /** Adds the change log tab (header and formats); returns its sheetId. */
+    suspend fun addLogTab(spreadsheetId: String): Int {
+        val sheetId = addSheets(spreadsheetId, listOf(SheetLayout.LOG)).getValue(SheetLayout.LOG)
+        sheets.batchUpdateValues(
+            spreadsheetId,
+            listOf(ValueRange(range = SheetLayout.range(SheetLayout.LOG, "A1"), values = listOf(SheetLayout.headerRow(SheetLayout.logHeader)))),
+        )
+        sheets.batchUpdate(spreadsheetId, SheetLayout.logFormat(sheetId))
+        return sheetId
+    }
+
+    suspend fun readConfig(spreadsheetId: String): SheetConfig {
         val spreadsheet = sheets.get(spreadsheetId)
         val (categoryRows, settingRows) = sheets.batchGet(
             spreadsheetId,

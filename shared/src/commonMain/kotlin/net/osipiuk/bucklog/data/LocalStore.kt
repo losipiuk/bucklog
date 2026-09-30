@@ -13,6 +13,7 @@ import net.osipiuk.bucklog.domain.Category
 import net.osipiuk.bucklog.domain.Entry
 import net.osipiuk.bucklog.domain.EntryStatus
 import net.osipiuk.bucklog.domain.HistoryItem
+import kotlin.time.Duration.Companion.days
 import kotlin.time.Instant
 
 /** The on-device database: entries, the sync outbox, categories and settings. */
@@ -145,8 +146,9 @@ class LocalStore(
      *   to them is dropped (a remote delete wins);
      * - new local entries (never in the sheet) are kept for upload.
      * [raw] holds the original cells of rows that couldn't be parsed (status INVALID).
+     * Entries removed this way are kept in "Recently removed" (as of [now]) so they can be restored.
      */
-    suspend fun applyPull(remote: List<Entry>, raw: Map<String, String>, pendingIds: Set<String>) = withContext(io) {
+    suspend fun applyPull(remote: List<Entry>, raw: Map<String, String>, pendingIds: Set<String>, now: Instant) = withContext(io) {
         q.transaction {
             val remoteIds = remote.mapTo(HashSet()) { it.id }
             for (entry in remote) {
@@ -154,9 +156,45 @@ class LocalStore(
             }
             for (id in q.entryIdsInSheet().executeAsList()) {
                 if (id !in remoteIds) {
+                    q.keepRemoved(now.toEpochMilliseconds(), id)
                     q.deleteEntry(id)
                     q.deleteEntryOpsFor(id)
                 }
+            }
+            q.pruneRemoved((now - KEEP_REMOVED).toEpochMilliseconds())
+        }
+    }
+
+    /** Entries that disappeared from the sheet, newest first. */
+    val removedEntries: Flow<List<RemovedEntry>> = q.removedEntries { id, ts, who, what, category, amount, currency, rate, removedAt ->
+        RemovedEntry(
+            Entry(id, Instant.fromEpochMilliseconds(ts), who, what, category, amount, currency, rate, EntryStatus.PENDING),
+            Instant.fromEpochMilliseconds(removedAt),
+        )
+    }.asFlow().mapToList(io)
+
+    /** Puts a removed entry back: it's uploaded again as new. */
+    suspend fun restoreRemoved(removed: RemovedEntry) = withContext(io) {
+        q.transaction {
+            q.insert(removed.entry.copy(status = EntryStatus.PENDING), raw = null, inSheet = false)
+            q.enqueue(OP_UPSERT, removed.entry.id)
+            q.forgetRemoved(removed.entry.id)
+        }
+    }
+
+    suspend fun dismissRemoved(id: String) = withContext(io) { q.forgetRemoved(id) }
+
+    /** Queues deletions again (a delete that didn't land as expected). */
+    suspend fun requeueDeletes(ids: Collection<String>) = withContext(io) {
+        q.transaction { ids.forEach { q.enqueue(OP_DELETE, it) } }
+    }
+
+    /** Queues entries for upload again (a write that didn't land as expected). */
+    suspend fun requeue(ids: Collection<String>) = withContext(io) {
+        q.transaction {
+            ids.forEach {
+                q.requeueUpsert(it)
+                q.enqueue(OP_UPSERT, it)
             }
         }
     }
@@ -211,6 +249,7 @@ class LocalStore(
         SyncStatus(
             lastSuccess = values[SyncStatus.LAST_SUCCESS]?.toLongOrNull()?.let(Instant::fromEpochMilliseconds),
             error = values[SyncStatus.ERROR],
+            warning = values[SyncStatus.WARNING],
             errorKind = values[SyncStatus.ERROR_KIND]?.let { k -> SyncErrorKind.entries.firstOrNull { it.name == k } },
             pendingChanges = pending,
         )
@@ -251,6 +290,7 @@ class LocalStore(
         q.transaction {
             q.clearSheetValues()
             q.clearEntries()
+            q.clearRemoved()
             q.clearOutbox()
             q.deleteCategories()
         }
@@ -261,6 +301,7 @@ class LocalStore(
         q.transaction {
             q.clearValues()
             q.clearEntries()
+            q.clearRemoved()
             q.clearOutbox()
             q.deleteCategories()
         }
@@ -271,6 +312,7 @@ class LocalStore(
         const val OP_UPSERT = "UPSERT"
         const val OP_DELETE = "DELETE"
         const val OP_UPDATE_CATEGORY = "UPDATE_CATEGORY"
+        val KEEP_REMOVED = 60.days
     }
 
     private fun toEntry(

@@ -1,0 +1,12 @@
+-- Entries that disappeared from the sheet (deleted elsewhere, or lost in a collision), kept for restoring.
+CREATE TABLE removed_entry (
+    id TEXT NOT NULL PRIMARY KEY,
+    ts INTEGER NOT NULL,
+    who TEXT NOT NULL,
+    what TEXT NOT NULL,
+    category TEXT NOT NULL,
+    amount_minor INTEGER NOT NULL,
+    currency TEXT NOT NULL,
+    rate TEXT,
+    removed_at INTEGER NOT NULL
+);

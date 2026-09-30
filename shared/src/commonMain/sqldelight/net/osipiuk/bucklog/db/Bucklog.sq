@@ -33,6 +33,19 @@ CREATE TABLE category (
     position INTEGER NOT NULL
 );
 
+-- Entries that disappeared from the sheet (deleted elsewhere, or lost in a collision), kept for restoring.
+CREATE TABLE removed_entry (
+    id TEXT NOT NULL PRIMARY KEY,
+    ts INTEGER NOT NULL,
+    who TEXT NOT NULL,
+    what TEXT NOT NULL,
+    category TEXT NOT NULL,
+    amount_minor INTEGER NOT NULL,
+    currency TEXT NOT NULL,
+    rate TEXT,
+    removed_at INTEGER NOT NULL
+);
+
 CREATE TABLE fx_rate (
     currency TEXT NOT NULL,
     date TEXT NOT NULL,
@@ -44,6 +57,25 @@ CREATE TABLE setting (
     name TEXT NOT NULL PRIMARY KEY,
     content TEXT NOT NULL
 );
+
+keepRemoved:
+INSERT OR REPLACE INTO removed_entry(id, ts, who, what, category, amount_minor, currency, rate, removed_at)
+SELECT id, ts, who, what, category, amount_minor, currency, rate, ? FROM entry WHERE id = ? AND status != 'INVALID';
+
+removedEntries:
+SELECT * FROM removed_entry ORDER BY removed_at DESC;
+
+forgetRemoved:
+DELETE FROM removed_entry WHERE id = ?;
+
+pruneRemoved:
+DELETE FROM removed_entry WHERE removed_at < ?;
+
+clearRemoved:
+DELETE FROM removed_entry;
+
+requeueUpsert:
+UPDATE entry SET status = 'PENDING' WHERE id = ?;
 
 insertEntry:
 INSERT OR REPLACE INTO entry(id, ts, who, what, category, amount_minor, currency, rate, status, raw_json, in_sheet)

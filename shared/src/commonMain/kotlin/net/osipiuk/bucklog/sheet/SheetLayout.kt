@@ -12,11 +12,13 @@ import kotlinx.serialization.json.putJsonObject
 object SheetLayout {
     const val CATEGORIES = "Categories"
     const val SETTINGS = "Settings"
+    const val LOG = "Log"
     const val SCHEMA_VERSION = 1
 
     val categoriesHeader = listOf("Name", "Emoji", "Archived")
     val settingsHeader = listOf("Key", "Value")
     val yearHeader = listOf("Date", "Who", "What", "Category", "Amount", "Currency", "Rate", "ID")
+    val logHeader = listOf("Time", "Who", "Action", "ID", "Before", "After")
 
     const val DATE_PATTERN = "yyyy-mm-dd hh:mm"
 
@@ -79,6 +81,12 @@ object SheetLayout {
                 }
             }
         },
+    )
+
+    /** Log tab: bold header, date-time Time column. */
+    fun logFormat(sheetId: Int): List<JsonObject> = listOf(
+        headerFormat(sheetId),
+        numberFormat(sheetId, col = 0, type = "DATE_TIME", pattern = DATE_PATTERN),
     )
 
     fun addSheet(title: String): JsonObject = buildJsonObject {
