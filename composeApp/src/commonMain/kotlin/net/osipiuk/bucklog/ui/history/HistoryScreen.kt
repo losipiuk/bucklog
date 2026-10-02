@@ -169,7 +169,9 @@ fun HistoryScreen(
                         }
                     }
                     for (group in ui.groups) {
-                        stickyHeader(key = "h-${group.start}") {
+                        // Grouping in the key: a month's header (keyed by the 1st) must not match that day's header,
+                        // or switching Month → Day keeps the list anchored on the 1st instead of the top.
+                        stickyHeader(key = "h-${ui.grouping}-${group.start}") {
                             GroupHeader(group, ui, today, money, onCategory = vm::setCategoryFilter)
                         }
                         items(group.entries, key = { it.id }) { entry ->
