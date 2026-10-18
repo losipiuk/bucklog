@@ -36,8 +36,11 @@ val LocalExtraColors = staticCompositionLocalOf { ExtraColors(refund = Color(0xF
 
 /** [dynamicScheme] comes from the platform (Material You on Android 12+); falls back to the Bucklog palette. */
 @Composable
-fun BucklogTheme(dynamicScheme: ColorScheme? = null, content: @Composable () -> Unit) {
-    val dark = isSystemInDarkTheme()
+fun BucklogTheme(
+    dynamicScheme: ColorScheme? = null,
+    dark: Boolean = isSystemInDarkTheme(),
+    content: @Composable () -> Unit,
+) {
     val extra = ExtraColors(refund = if (dark) Color(0xFF81C784) else Color(0xFF2E7D32))
     CompositionLocalProvider(LocalExtraColors provides extra) {
         MaterialTheme(colorScheme = dynamicScheme ?: if (dark) DarkScheme else LightScheme, content = content)

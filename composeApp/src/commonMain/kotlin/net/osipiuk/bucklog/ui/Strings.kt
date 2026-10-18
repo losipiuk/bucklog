@@ -109,6 +109,10 @@ interface Strings {
     val archivedLabel: String
     val addCategory: String
     val language: String
+    val appearance: String
+    val themeSystem: String
+    val themeLight: String
+    val themeDark: String
     val languageSystem: String
     val developer: String
     val addDemo: String
@@ -267,6 +271,10 @@ object EnglishStrings : Strings {
     override val archivedLabel = "archived"
     override val addCategory = "＋ Add category"
     override val language = "Language"
+    override val appearance = "Appearance"
+    override val themeSystem = "System"
+    override val themeLight = "Light"
+    override val themeDark = "Dark"
     override val languageSystem = "System"
     override val developer = "Developer"
     override val addDemo = "Add demo expenses (6 months)"
@@ -431,6 +439,10 @@ object PolishStrings : Strings {
     override val archivedLabel = "archiwum"
     override val addCategory = "＋ Dodaj kategorię"
     override val language = "Język"
+    override val appearance = "Wygląd"
+    override val themeSystem = "System"
+    override val themeLight = "Jasny"
+    override val themeDark = "Ciemny"
     override val languageSystem = "Systemowy"
     override val developer = "Deweloper"
     override val addDemo = "Dodaj przykładowe wydatki (6 miesięcy)"

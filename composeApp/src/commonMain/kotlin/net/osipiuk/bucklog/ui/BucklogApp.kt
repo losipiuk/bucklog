@@ -1,5 +1,6 @@
 package net.osipiuk.bucklog.ui
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.safeDrawingPadding
@@ -53,12 +54,17 @@ private sealed interface Screen {
 
 /** Root: setup until configured, then straight into Add Expense (SPEC §5.2), with History/Edit/Settings on top. */
 @Composable
-fun BucklogApp(graph: AppGraph, platform: Platform, dynamicScheme: ColorScheme? = null) {
+fun BucklogApp(
+    graph: AppGraph,
+    platform: Platform,
+    dynamicScheme: ColorScheme? = null,
+    darkTheme: Boolean = isSystemInDarkTheme(),
+) {
     val language by graph.store.valueFlow(LANGUAGE_KEY).collectAsState(null)
     val strings = stringsFor(language?.takeIf { it != "system" } ?: platform.language)
     graph.strings = strings
     CompositionLocalProvider(LocalStrings provides strings) {
-        BucklogTheme(dynamicScheme) {
+        BucklogTheme(dynamicScheme, dark = darkTheme) {
             Surface(Modifier.fillMaxSize()) {
                 val config by graph.store.config.collectAsState(null)
                 val current = config ?: return@Surface

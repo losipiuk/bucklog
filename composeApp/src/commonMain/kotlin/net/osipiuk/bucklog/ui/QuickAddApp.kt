@@ -6,6 +6,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -49,6 +50,7 @@ fun QuickAddApp(
     dynamicScheme: ColorScheme?,
     onDismiss: () -> Unit,
     onNeedsSetup: () -> Unit,
+    darkTheme: Boolean = isSystemInDarkTheme(),
 ) {
     val language by graph.store.valueFlow(LANGUAGE_KEY).collectAsState(null)
     val strings = stringsFor(language?.takeIf { it != "system" } ?: platform.language)
@@ -61,7 +63,7 @@ fun QuickAddApp(
     }
     val shown = remember { MutableTransitionState(false).apply { targetState = true } }
     CompositionLocalProvider(LocalStrings provides strings) {
-        BucklogTheme(dynamicScheme) {
+        BucklogTheme(dynamicScheme, dark = darkTheme) {
             Box(Modifier.fillMaxSize()) {
                 AnimatedVisibility(shown, enter = fadeIn(), exit = fadeOut()) {
                     Box(

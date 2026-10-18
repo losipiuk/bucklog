@@ -52,6 +52,14 @@ class LocalStoreTest {
     }
 
     @Test
+    fun themePreferenceSurvivesSwitchingSheets() = runTest {
+        store.putValue(ThemeMode.KEY, ThemeMode.LIGHT.storedValue)
+        store.forgetSheet()
+        assertEquals(ThemeMode.LIGHT, ThemeMode.fromStored(store.valueFlow(ThemeMode.KEY).first()))
+        assertEquals(0, store.outboxSize())
+    }
+
+    @Test
     fun resetForgetsEverything() = runTest {
         store.updateConfig(myName = "Łukasz")
         store.addEntry(entry("a", "2026-09-01T10:00:00Z"))

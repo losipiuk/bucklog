@@ -7,11 +7,13 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
 import net.osipiuk.bucklog.data.AppConfig
 import net.osipiuk.bucklog.data.SyncStatus
+import net.osipiuk.bucklog.data.ThemeMode
 import net.osipiuk.bucklog.domain.Category
 import net.osipiuk.bucklog.domain.DemoData
 import net.osipiuk.bucklog.domain.normalizeText
@@ -22,6 +24,13 @@ import net.osipiuk.bucklog.ui.Platform
 data class SettingsUiState(val config: AppConfig, val categories: List<Category>, val sync: SyncStatus, val language: String)
 
 class SettingsViewModel(private val graph: AppGraph, private val platform: Platform) : ViewModel() {
+    val themeMode = graph.store.valueFlow(ThemeMode.KEY).map(ThemeMode::fromStored)
+        .stateIn(viewModelScope, SharingStarted.Eagerly, ThemeMode.SYSTEM)
+
+    fun setThemeMode(mode: ThemeMode) = viewModelScope.launch {
+        graph.store.putValue(ThemeMode.KEY, mode.storedValue)
+    }
+
     val syncing = MutableStateFlow(false)
     val backingUp = MutableStateFlow(false)
     val backup = graph.backups.status

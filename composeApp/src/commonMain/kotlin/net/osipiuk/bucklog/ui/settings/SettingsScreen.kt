@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import net.osipiuk.bucklog.data.ThemeMode
 import net.osipiuk.bucklog.domain.Category
 import net.osipiuk.bucklog.ui.AppGraph
 import net.osipiuk.bucklog.ui.AppIcons
@@ -63,6 +64,7 @@ private sealed interface Confirm {
 @Composable
 fun SettingsScreen(vm: SettingsViewModel, graph: AppGraph, platform: Platform, onBack: () -> Unit) {
     val state by vm.state.collectAsState()
+    val themeMode by vm.themeMode.collectAsState()
     val s = LocalStrings.current
     val syncing by vm.syncing.collectAsState()
     val backingUp by vm.backingUp.collectAsState()
@@ -118,6 +120,19 @@ fun SettingsScreen(vm: SettingsViewModel, graph: AppGraph, platform: Platform, o
                     SegmentedButton(
                         selected = ui.language == code,
                         onClick = { vm.setLanguage(code) },
+                        shape = SegmentedButtonDefaults.itemShape(i, options.size),
+                        icon = {},
+                    ) { Text(label) }
+                }
+            }
+
+            Text(s.appearance, style = MaterialTheme.typography.labelLarge)
+            SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                val options = listOf(ThemeMode.SYSTEM to s.themeSystem, ThemeMode.LIGHT to s.themeLight, ThemeMode.DARK to s.themeDark)
+                options.forEachIndexed { i, (mode, label) ->
+                    SegmentedButton(
+                        selected = themeMode == mode,
+                        onClick = { vm.setThemeMode(mode) },
                         shape = SegmentedButtonDefaults.itemShape(i, options.size),
                         icon = {},
                     ) { Text(label) }

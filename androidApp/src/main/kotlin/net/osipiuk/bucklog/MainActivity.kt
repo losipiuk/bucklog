@@ -1,15 +1,10 @@
 package net.osipiuk.bucklog
 
 import android.content.Intent
-import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
-import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
 import net.osipiuk.bucklog.domain.InviteLinks
@@ -27,13 +22,9 @@ class MainActivity : ComponentActivity() {
         // Pick up family and hand-made changes whenever the app opens.
         SyncScheduler.syncNow(this)
         setContent {
-            val context = LocalContext.current
-            val dynamic = when {
-                Build.VERSION.SDK_INT < Build.VERSION_CODES.S -> null
-                isSystemInDarkTheme() -> dynamicDarkColorScheme(context)
-                else -> dynamicLightColorScheme(context)
+            AndroidAppearance(app.graph.store) { dark, dynamic ->
+                BucklogApp(app.graph, platform, dynamic, darkTheme = dark)
             }
-            BucklogApp(app.graph, platform, dynamic)
         }
     }
 
