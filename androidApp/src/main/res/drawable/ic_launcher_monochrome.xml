@@ -1,19 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Themed-icon layer (Android 13+): one color, tinted by the system. The clasp is a cut-out,
-     and the coin sits just above the wallet so the two stay separate shapes. -->
+<!-- System-tinted silhouette with eye and coin slot cut-outs. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="108dp"
-    android:height="108dp"
-    android:viewportWidth="108"
-    android:viewportHeight="108">
-    <path
-        android:fillColor="#000000"
-        android:pathData="M58,23 a8,8 0 1 1 0,16 a8,8 0 1 1 0,-16 z" />
-    <path
-        android:fillColor="#000000"
-        android:fillType="evenOdd"
-        android:pathData="M37,40 H71 A7,7 0 0 1 78,47 V69 A7,7 0 0 1 71,76 H37 A7,7 0 0 1 30,69 V47 A7,7 0 0 1 37,40 Z M58,50 H78 V66 H58 A8,8 0 0 1 58,50 Z" />
-    <path
-        android:fillColor="#000000"
-        android:pathData="M61,55 a3,3 0 1 1 0,6 a3,3 0 1 1 0,-6 z" />
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <path android:fillColor="#000000" android:fillType="evenOdd"
+        android:pathData="M 31,52 C 26,53 25,48 28,46 C 30,44 27,42 25,44 C 20,48 23,57 30,57 C 30,65 34,70 38,72 L 38,77 C 38,80 44,80 45,77 L 46,74 L 61,74 L 63,78 C 64,81 70,80 70,77 L 70,71 C 74,68 76,64 77,61 L 81,61 C 84,61 84,53 81,53 L 76,52 C 75,48 73,45 69,43 L 69,35 C 69,32 62,36 59,40 C 46,37 34,41 31,52 Z M 70,51 C 73,51 73,55 70,55 C 67,55 67,51 70,51 Z M 46,42 C 46,41 62,41 62,42 C 62,45 46,45 46,42 Z" />
+    <path android:fillColor="#000000"
+        android:pathData="M 54,25 C 65,25 65,41 54,41 C 43,41 43,25 54,25 Z" />
 </vector>
