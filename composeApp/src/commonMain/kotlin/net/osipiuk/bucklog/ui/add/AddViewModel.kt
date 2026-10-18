@@ -24,6 +24,8 @@ import net.osipiuk.bucklog.domain.Suggestion
 import net.osipiuk.bucklog.domain.SuggestionEngine
 import net.osipiuk.bucklog.domain.newEntryId
 import net.osipiuk.bucklog.domain.normalizeText
+import net.osipiuk.bucklog.ui.CLOSE_AFTER_ADD_KEY
+import net.osipiuk.bucklog.ui.parseCloseAfterAdd
 import net.osipiuk.bucklog.ui.AppGraph
 import net.osipiuk.bucklog.ui.Platform
 import net.osipiuk.bucklog.ui.userMessage
@@ -42,7 +44,7 @@ data class AddForm(
     /** Category chosen by tapping a chip; overrides the guess until What changes via a suggestion. */
     val pickedCategory: String? = null,
     val saving: Boolean = false,
-    /** Saved: the success animation plays, then the app closes. */
+    /** Saved: show confirmation before closing or starting the next entry. */
     val done: Boolean = false,
     val error: String? = null,
 )
@@ -59,11 +61,11 @@ data class AddUiState(
     val selectedCategory: String?,
     val recentCurrencies: List<String>,
 ) {
-    val canContinue: Boolean get() = !form.amount.isZero
+    val canContinue: Boolean get() = !form.amount.isZero && !form.saving && !form.done
     val canAdd: Boolean get() = canContinue && selectedCategory != null && !form.saving
 }
 
-/** The main flow (SPEC §5.2): amount → what + category → Add closes the app. */
+/** Amount → what + category → confirmation, then close or reset according to the local preference. */
 class AddViewModel(private val graph: AppGraph, private val platform: Platform) : ViewModel() {
     private val money = MoneyFormat()
     private val form = MutableStateFlow(AddForm())
@@ -96,22 +98,26 @@ class AddViewModel(private val graph: AppGraph, private val platform: Platform) 
         )
     }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
-    fun press(key: AmountKey) = form.update { it.copy(amount = it.amount.press(key)) }
+    private fun editForm(change: (AddForm) -> AddForm) = form.update {
+        if (it.saving || it.done) it else change(it)
+    }
 
-    fun toggleRefund() = form.update { it.copy(refund = !it.refund) }
+    fun press(key: AmountKey) = editForm { it.copy(amount = it.amount.press(key)) }
 
-    fun selectCurrency(code: String) = form.update { it.copy(currency = code) }
+    fun toggleRefund() = editForm { it.copy(refund = !it.refund) }
 
-    fun next() = form.update { if (it.amount.isZero) it else it.copy(step = AddStep.DETAILS) }
+    fun selectCurrency(code: String) = editForm { it.copy(currency = code) }
 
-    fun back() = form.update { it.copy(step = AddStep.AMOUNT) }
+    fun next() = editForm { if (it.amount.isZero) it else it.copy(step = AddStep.DETAILS) }
 
-    fun onWhatChange(text: String) = form.update { it.copy(what = text, error = null) }
+    fun back() = editForm { it.copy(step = AddStep.AMOUNT) }
+
+    fun onWhatChange(text: String) = editForm { it.copy(what = text, error = null) }
 
     fun pickSuggestion(suggestion: Suggestion) =
-        form.update { it.copy(what = suggestion.what, pickedCategory = suggestion.category) }
+        editForm { it.copy(what = suggestion.what, pickedCategory = suggestion.category) }
 
-    fun pickCategory(name: String) = form.update { it.copy(pickedCategory = name) }
+    fun pickCategory(name: String) = editForm { it.copy(pickedCategory = name) }
 
     /** Creates a category typed in the category search (or picks the existing one with that name). */
     fun createCategory(rawName: String) {
@@ -133,10 +139,11 @@ class AddViewModel(private val graph: AppGraph, private val platform: Platform) 
     fun add() {
         val ui = state.value ?: return
         val category = ui.selectedCategory ?: return
-        if (!ui.canAdd) return
+        if (!ui.canAdd || form.value.saving || form.value.done) return
         form.update { it.copy(saving = true) }
         viewModelScope.launch {
             try {
+                val shouldClose = parseCloseAfterAdd(graph.store.value(CLOSE_AFTER_ADD_KEY))
                 val config = graph.store.config.first()
                 val minor = ui.form.amount.minorUnits.let { if (ui.form.refund) -it else it }
                 graph.store.addEntry(
@@ -158,14 +165,16 @@ class AddViewModel(private val graph: AppGraph, private val platform: Platform) 
                 val emoji = ui.categories.firstOrNull { it.name == category }?.emoji?.let { "$it " }.orEmpty()
                 form.update { it.copy(done = true) }
                 delay(SUCCESS_ANIMATION_MS)
-                platform.finishWithMessage(
-                    graph.strings.added(money.formatWithCode(ui.form.amount.minorUnits, ui.currency), "$emoji$category", ui.form.refund),
-                )
+                if (shouldClose) {
+                    platform.finishWithMessage(
+                        graph.strings.added(money.formatWithCode(ui.form.amount.minorUnits, ui.currency), "$emoji$category", ui.form.refund),
+                    )
+                }
                 form.value = AddForm()
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                form.update { it.copy(saving = false, error = e.userMessage(graph.strings)) }
+                form.update { it.copy(saving = false, done = false, error = e.userMessage(graph.strings)) }
             }
         }
     }

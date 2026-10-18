@@ -60,6 +60,10 @@ kotlin {
 }
 
 dependencies {
+    testImplementation(kotlin("test-junit"))
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.sqldelight.sqlite.driver)
+    testImplementation(libs.ktor.client.mock)
     implementation(project(":composeApp"))
     implementation(libs.ktor.client.okhttp)
     implementation(libs.kotlinx.coroutines.android)

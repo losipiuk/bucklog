@@ -93,6 +93,9 @@ interface Strings {
     val useAnotherSheet: String
     val backups: String
     val quickAdd: String
+    val entryBehavior: String
+    val closeAfterAdd: String
+    val closeAfterAddHelp: String
     val quickAddHelp: String
     val addQuickTile: String
     val quickTileManual: String
@@ -255,6 +258,9 @@ object EnglishStrings : Strings {
     override val useAnotherSheet = "Use another sheet…"
     override val backups = "Backups"
     override val quickAdd = "Quick add"
+    override val entryBehavior = "Adding entries"
+    override val closeAfterAdd = "Close after adding an entry"
+    override val closeAfterAddHelp = "Turn off to return to an empty amount screen after saving, including in quick add."
     override val quickAddHelp = "Add expenses from anywhere with the “Bucklog” tile in Quick Settings (swipe down from the top of the screen twice)."
     override val addQuickTile = "Add Quick Settings tile"
     override val quickTileManual = "Swipe down twice, tap ✎ (edit), then drag “Bucklog” into your tiles."
@@ -423,6 +429,9 @@ object PolishStrings : Strings {
     override val useAnotherSheet = "Użyj innego arkusza…"
     override val backups = "Kopie zapasowe"
     override val quickAdd = "Szybkie dodawanie"
+    override val entryBehavior = "Dodawanie wpisów"
+    override val closeAfterAdd = "Zamykaj po dodaniu wpisu"
+    override val closeAfterAddHelp = "Wyłącz, aby po zapisie wracać do pustego ekranu kwoty, także w szybkim dodawaniu."
     override val quickAddHelp = "Dodawaj wydatki z dowolnego miejsca kafelkiem „Bucklog” w Szybkich ustawieniach (dwa razy przesuń palcem w dół od góry ekranu)."
     override val addQuickTile = "Dodaj kafelek do Szybkich ustawień"
     override val quickTileManual = "Przesuń dwa razy w dół, stuknij ✎ (edytuj) i przeciągnij „Bucklog” do kafelków."

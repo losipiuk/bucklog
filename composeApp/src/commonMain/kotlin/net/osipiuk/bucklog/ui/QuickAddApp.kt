@@ -40,7 +40,7 @@ import net.osipiuk.bucklog.ui.add.AddViewModel
 /**
  * Quick add (M5): the add flow in a bottom panel over whatever app is open, opened from the
  * Quick Settings tile and other shortcuts. [onDismiss] closes it (tap outside, or cancel);
- * adding an expense closes it through the usual Platform.finishWithMessage.
+ * after saving, the local close-after-add preference either dismisses the panel or resets its form.
  * [onNeedsSetup] runs instead when Bucklog isn't set up yet (the full app handles that).
  */
 @Composable

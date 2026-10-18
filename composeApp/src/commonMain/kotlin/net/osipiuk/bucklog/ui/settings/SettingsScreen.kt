@@ -34,6 +34,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
@@ -69,6 +71,7 @@ fun SettingsScreen(vm: SettingsViewModel, graph: AppGraph, platform: Platform, o
     val syncing by vm.syncing.collectAsState()
     val backingUp by vm.backingUp.collectAsState()
     val backup by vm.backup.collectAsState(null)
+    val closeAfterAdd by vm.closeAfterAdd.collectAsState()
     val ui = state ?: return
     val scope = rememberCoroutineScope()
     var name by remember(ui.config.myName) { mutableStateOf(ui.config.myName.orEmpty()) }
@@ -150,6 +153,16 @@ fun SettingsScreen(vm: SettingsViewModel, graph: AppGraph, platform: Platform, o
                 Text(s.openInSheets(ui.config.spreadsheetName.orEmpty()))
             }
             TextButton(onClick = { scope.launch { confirm = Confirm.SwitchSheet(vm.pendingChanges()) } }) { Text(s.useAnotherSheet) }
+
+            Section(s.entryBehavior)
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f).padding(end = 12.dp)) {
+                    Text(s.closeAfterAdd, style = MaterialTheme.typography.bodyLarge)
+                    Text(s.closeAfterAddHelp, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Switch(checked = closeAfterAdd, onCheckedChange = vm::setCloseAfterAdd,
+                    modifier = Modifier.semantics { contentDescription = s.closeAfterAdd })
+            }
 
             Section(s.quickAdd)
             Text(s.quickAddHelp, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)

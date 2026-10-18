@@ -27,6 +27,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -51,6 +52,10 @@ fun AddExpenseScreen(
     val sync by graph.store.syncStatus.collectAsState(null)
     val ui = state ?: return
     var pickingCurrency by remember { mutableStateOf(false) }
+    val keyboard = LocalSoftwareKeyboardController.current
+    LaunchedEffect(ui.form.step, ui.form.saving) {
+        if (ui.form.step == AddStep.AMOUNT || ui.form.saving) keyboard?.hide()
+    }
 
 
     platform.BackHandler(enabled = ui.form.step == AddStep.DETAILS, onBack = vm::back)
@@ -98,7 +103,7 @@ fun AddExpenseScreen(
     }
 }
 
-/** A green check that pops in after Add, just before the app closes. */
+/** Confirmation shown after saving, before closing or resetting the form. */
 @Composable
 private fun SuccessOverlay(visible: Boolean) {
     AnimatedVisibility(visible, enter = fadeIn(), modifier = Modifier.fillMaxSize()) {
